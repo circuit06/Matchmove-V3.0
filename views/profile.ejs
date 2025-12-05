@@ -1,95 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Profile</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
         body {
-            font-family: "Helvetica World", sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
+            background: #eef1f5;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Main content wrapper (so it doesn’t clash with sidebar) */
-        .main-content {
-            padding: 80px 20px 20px; /* top space for navbar */
-        }
-
-        .profile-wrapper {
-            max-width: 600px;
-            margin: 0 auto;
+        .page-wrapper {
+            margin-left: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 80px);
         }
 
         .profile-card {
-            background-color: #fff;
-            border-radius: 10px;
-            padding: 25px 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 550px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 35px;
+            box-shadow: 0px 4px 18px rgba(0,0,0,0.08);
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(10px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        /* CENTER THE PROFILE HEADER */
+        .profile-title, 
+        .profile-subtitle {
+            text-align: center;
         }
 
         .profile-title {
-            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .profile-subtitle {
+            color: #6c757d;
             margin-bottom: 25px;
         }
 
-        .profile-label {
+        .profile-field {
+            margin-bottom: 18px;
+        }
+
+        .label {
             font-weight: 600;
-            color: #555;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
         }
 
-        .profile-value {
-            font-weight: 500;
+        .value {
+            font-size: 17px;
+            padding: 12px 15px;
+            background: #f4f6f8;
+            border-radius: 10px;
         }
 
-        .divider {
-            border-top: 1px solid #eee;
-            margin: 10px 0 15px 0;
+        .btn-row {
+            margin-top: 25px;
+        }
+
+        .alert {
+            max-width: 550px;
+            margin-bottom: 20px;
+        }
+
+        /* ---------- Custom Buttons ---------- */
+        .btn-danger-custom {
+            background-color: #d21404;
+            color: #fff;
+            border: none;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .btn-danger-custom:hover {
+            background-color: #a91b0d;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-success-custom {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .btn-success-custom:hover {
+            background-color: #218838;
+            color: white;
+            transform: translateY(-1px);
         }
     </style>
 </head>
 
 <body>
-
-    <!-- Navbar and Sidebar Partials -->
     <%- include('partial/navbar') %>
     <%- include('partial/sidebar') %>
 
-    <!-- Main Profile Content -->
-    <div class="main-content">
-        <div class="profile-wrapper">
-            <div class="profile-card">
-                <h3 class="profile-title">My Profile</h3>
+    <div class="page-wrapper">
 
-                <div class="mb-3">
-                    <div class="profile-label">Username</div>
-                    <div class="profile-value"><%= userName %></div>
+        <% if (messages && messages.length > 0) { %>
+            <div class="alert alert-success">
+                <% messages.forEach(m => { %><div><%= m %></div><% }) %>
+            </div>
+        <% } %>
+
+        <% if (errors && errors.length > 0) { %>
+            <div class="alert alert-danger">
+                <% errors.forEach(e => { %><div><%= e %></div><% }) %>
+            </div>
+        <% } %>
+
+        <div class="profile-card">
+            <div class="profile-title">My Profile</div>
+
+            <!-- VIEW MODE -->
+            <div id="viewMode">
+                <div class="profile-field">
+                    <div class="label">Username</div>
+                    <div class="value"><%= user.username %></div>
                 </div>
 
-                <div class="divider"></div>
-
-                <div class="mb-3">
-                    <div class="profile-label">Email</div>
-                    <div class="profile-value"><%= userEmail %></div>
+                <div class="profile-field">
+                    <div class="label">Email</div>
+                    <div class="value"><%= user.email %></div>
                 </div>
 
-                <div class="divider"></div>
+                <div class="profile-field">
+                    <div class="label">Password</div>
+                    <div class="value">******</div>
+                </div>
 
-                <div class="mb-1">
-                    <div class="profile-label">Password</div>
-                    <!-- For security, just show masked password -->
-                    <div class="profile-value">********</div>
+                <div class="btn-row">
+                    <button class="btn btn-danger-custom w-100" onclick="enableEdit()">Edit Profile</button>
                 </div>
             </div>
+
+            <!-- EDIT MODE -->
+            <div id="editMode" style="display: none;">
+                <form action="/profile" method="POST">
+
+                    <div class="profile-field">
+                        <div class="label">Username</div>
+                        <input type="text" class="form-control" name="userName" value="<%= user.username %>" required />
+                    </div>
+
+                    <div class="profile-field">
+                        <div class="label">Email</div>
+                        <input type="email" class="form-control" name="userEmail" value="<%= user.email %>" required />
+                    </div>
+
+                    <div class="profile-field">
+                        <div class="label">New Password</div>
+                        <input type="password" class="form-control" name="userPassword" placeholder="Leave blank to keep current password" />
+                    </div>
+
+                    <div class="btn-row d-flex gap-2">
+                        <button type="submit" class="btn btn-success-custom w-50">Save Changes</button>
+                        <button type="button" class="btn btn-danger-custom w-50" onclick="cancelEdit()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
         </div>
     </div>
 
-</body>
+    <script>
+        function enableEdit() {
+            document.getElementById('viewMode').style.display = 'none';
+            document.getElementById('editMode').style.display = 'block';
+        }
 
+        function cancelEdit() {
+            document.getElementById('editMode').style.display = 'none';
+            document.getElementById('viewMode').style.display = 'block';
+        }
+    </script>
+</body>
 </html>

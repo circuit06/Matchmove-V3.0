@@ -4,7 +4,6 @@ const path = require('path');
 const XLSX = require('xlsx');
 const db = require('./db');
 const session = require('express-session');
-const db = require('./db'); // MySQL connection
 
 const app = express();
 
@@ -82,7 +81,6 @@ app.get('/logout', (req, res) => {
 // ============= AUTH ROUTES (With DB) =============
 
 // POST /login (check credentials in DB)
-// POST /login (check credentials in DB)
 app.post('/login', async (req, res) => {
   const { userEmail, userPassword } = req.body;
   let errors = [];
@@ -133,19 +131,16 @@ app.post('/login', async (req, res) => {
   }
 });
 
-
-
-
-
 // POST /register (admin creates new users)
 app.post('/register', async (req, res) => {
   const { userName, userPassword, userRole, userEmail } = req.body;
   let messages = [];
 
-  if (!userName || !userPassword || !userEmail) {
-    messages.push('All fields are required.');
-    return res.render('register', { messages });
-  }
+  try {
+    if (!userName || !userPassword || !userEmail) {
+      messages.push('All fields are required.');
+      return res.render('register', { messages });
+    }
 
     // Check if email or username exist
     const [existing] = await db.query(
@@ -174,7 +169,6 @@ app.post('/register', async (req, res) => {
     return res.render('register', { messages });
   }
 });
-
 
 // ============= API ROUTES FOR EXCEL + DB =============
 
@@ -268,6 +262,76 @@ app.delete('/api/audit-records', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Clear data error:', err);
     res.status(500).json({ error: 'Failed to clear data' });
+  }
+});
+
+// ===================== PROFILE ROUTES =====================
+
+// VIEW PROFILE PAGE
+app.get('/profile', requireLogin, (req, res) => {
+  const user = req.session.user;
+
+  return res.render('profile', {
+    user,
+    messages: [],
+    errors: []
+  });
+});
+
+// UPDATE PROFILE (EDIT & SAVE)
+app.post('/profile', requireLogin, async (req, res) => {
+  const { userName, userEmail, userPassword } = req.body;
+  const userId = req.session.user.id;
+
+  let messages = [];
+  let errors = [];
+
+  try {
+    // 🛑 Validate fields
+    if (!userName || !userEmail) {
+      errors.push("Username and Email cannot be empty.");
+      return res.render("profile", {
+        user: req.session.user,
+        messages,
+        errors
+      });
+    }
+
+    // 🛠 Update username + email
+    await db.query(
+      `UPDATE users SET username = ?, email = ? WHERE id = ?`,
+      [userName, userEmail, userId]
+    );
+
+    // 🔐 Update password only if user entered one
+    if (userPassword && userPassword.trim() !== "") {
+      await db.query(
+        `UPDATE users SET password_hash = ? WHERE id = ?`,
+        [userPassword, userId]
+      );
+    }
+
+    // 🔄 Update session so changes appear immediately
+    req.session.user.username = userName;
+    req.session.user.email = userEmail;
+
+    messages.push("Profile updated successfully!");
+
+    return res.render("profile", {
+      user: req.session.user,
+      messages,
+      errors
+    });
+
+  } catch (err) {
+    console.error("Profile update error:", err);
+    errors.push("Something went wrong while updating your profile.");
+
+    return res.render("profile", {
+      user: req.session.user,
+      messages,
+      errors
+    });
   }
 });
 
