@@ -71,6 +71,20 @@ app.get('/dashboard', requireLogin, (req, res) => {
   res.render('dashboard', { data: [] });
 });
 
+// EXCEPTIONS PAGE (must be logged in)
+app.get('/exception', requireLogin, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM audit_records WHERE LOWER(status) = 'returned to sender'"
+    );
+
+    res.render('exception', { data: rows });
+  } catch (err) {
+    console.error("Error loading exception:", err);
+    res.render('exception', { data: [] });
+  }
+});
+
 // LOGOUT
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
