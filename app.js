@@ -111,6 +111,17 @@ app.post('/register', (req, res) => {
     return res.render('register', { messages });
   }
 
+  app.get('/profile', (req, res) => {
+    const user = req.session.user;
+
+    if (!user) return res.redirect('/login');
+
+    res.render('profile', {
+      userName: user.userName,
+      userEmail: user.userEmail
+    });
+  });
+
   const errors = [];
   messages.push(`User "${userName}" registered successfully! You can now log in.`);
   return res.render('login', { errors, messages });
