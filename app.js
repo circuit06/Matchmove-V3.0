@@ -141,11 +141,10 @@ app.post('/register', async (req, res) => {
   const { userName, userPassword, userRole, userEmail } = req.body;
   let messages = [];
 
-  try {
-    if (!userName || !userPassword || !userRole || !userEmail) {
-      messages.push('All fields are required.');
-      return res.render('register', { messages });
-    }
+  if (!userName || !userPassword || !userEmail) {
+    messages.push('All fields are required.');
+    return res.render('register', { messages });
+  }
 
     // Check if email or username exist
     const [existing] = await db.query(
