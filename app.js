@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const XLSX = require('xlsx');
-const db = require('./db');
 const session = require('express-session');
 
 const app = express();
