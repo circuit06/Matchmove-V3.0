@@ -6,6 +6,7 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -46,7 +47,7 @@
         #dropZone.dragover {
             background: #e9ecef;
         }
-        
+
         #statusPieChart {
             max-width: 250px;
             margin: 0 auto;
@@ -55,19 +56,27 @@
 </head>
 
 <body>
-    <%- include('partial/navbar') %>
-    <%- include('partial/sidebar') %>
+
+<%- include('partial/navbar') %>
+<%- include('partial/sidebar') %>
 
 <div class="container mt-4">
 
     <div class="dashboard-header">
         <h2>Audit Trail Dashboard</h2>
         <p>Upload one or more Excel files to see combined table and charts</p>
+
         <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
             Upload Excel File(s)
         </button>
+
+        <!-- Optional clear button -->
+        <button class="btn btn-danger mt-2" onclick="localStorage.removeItem('auditDataStore'); location.reload();">
+            Clear Saved Data
+        </button>
     </div>
 
+    <!-- Bar Chart -->
     <div class="card p-3 mb-3">
         <h6 class="mb-2">Status Overview (Bar Chart)</h6>
         <div class="mb-2">
@@ -76,11 +85,13 @@
         <canvas id="statusBarChart" height="120"></canvas>
     </div>
 
+    <!-- Pie Chart -->
     <div class="card p-3 mb-3">
         <h6 class="mb-3">Status Distribution (Pie Chart)</h6>
         <canvas id="statusPieChart" width="200" height="200"></canvas>
     </div>
 
+    <!-- Table -->
     <div class="card p-2">
         <div class="table-responsive">
             <table id="auditTable" class="table table-sm table-bordered table-hover">
@@ -89,20 +100,23 @@
                         <th class="text-muted">Upload an Excel file to view data</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
-                </tbody>
+                <tbody id="tableBody"></tbody>
             </table>
         </div>
     </div>
+
 </div>
 
+<!-- Upload Modal -->
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
+
       <div class="modal-header">
         <h5 class="modal-title" id="uploadModalLabel">Upload Excel File(s)</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
+
       <div class="modal-body">
 
         <div class="text-center mb-2">
@@ -113,108 +127,117 @@
             <h6 class="mb-1">📥 Drag & Drop Excel File Here</h6>
             <p class="text-muted mb-1">or click to browse</p>
             <small class="text-muted">Supported formats: .xlsx, .xls</small>
+
             <input type="file" id="excelInput" accept=".xlsx,.xls" hidden>
         </div>
 
       </div>
+
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
       </div>
+
     </div>
   </div>
 </div>
 
+<!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-    let auditData = <%- JSON.stringify(data || []) %>;
 
-    let barChart = null;
-    let pieChart = null;
-    let dataTableInstance = null;
+let auditData = <%- JSON.stringify(data || []) %>;
 
-    $(document).ready(function () {
-        setupDragAndDrop();
+let barChart = null;
+let pieChart = null;
+let dataTableInstance = null;
 
-        if (auditData.length > 0) {
-            loadDashboard(auditData, false);
-        } else {
-            initEmptyTable();
-        }
+// ==============================
+
+$(document).ready(function () {
+    setupDragAndDrop();
+
+    if (auditData.length > 0) {
+        loadDashboard(auditData, false);
+    } else {
+        initEmptyTable();
+    }
+});
+
+function setupDragAndDrop() {
+    const dropZone = document.getElementById("dropZone");
+    const excelInput = document.getElementById("excelInput");
+
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
     });
 
-    function setupDragAndDrop() {
-        const dropZone = document.getElementById("dropZone");
-        const excelInput = document.getElementById("excelInput");
+    dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+    });
 
-        dropZone.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            dropZone.classList.add("dragover");
-        });
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        if (file) readExcel(file);
+    });
 
-        dropZone.addEventListener("dragleave", () => {
-            dropZone.classList.remove("dragover");
-        });
+    dropZone.addEventListener("click", () => excelInput.click());
 
-        dropZone.addEventListener("drop", (e) => {
-            e.preventDefault();
-            dropZone.classList.remove("dragover");
-            const file = e.dataTransfer.files[0];
-            if (file) readExcel(file);
-        });
+    excelInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) readExcel(file);
+    });
+}
 
-        dropZone.addEventListener("click", () => excelInput.click());
+function readExcel(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
 
-        excelInput.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file) readExcel(file);
-        });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+        loadDashboard(jsonData, true);
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// ----- Loads Table & Charts -----
+
+function loadDashboard(newData, append) {
+    if (!newData) return;
+
+    if (append) {
+        auditData = auditData.concat(newData);
+    } else {
+        auditData = newData;
     }
 
-    function readExcel(file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: "array" });
+    renderTable(auditData);
+    renderCharts(auditData);
 
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
+    document.getElementById("totalCount").textContent = auditData.length;
+}
 
-            const jsonData = XLSX.utils.sheet_to_json(sheet);
+function initEmptyTable() {
+    $('#auditTable').DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        pageLength: 5
+    });
+}
 
-            loadDashboard(jsonData, true);
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    function loadDashboard(newData, append) {
-        if (!newData) return;
-
-        if (append) {
-            auditData = auditData.concat(newData);
-        } else {
-            auditData = newData;
-        }
-
-        renderTable(auditData);
-        renderCharts(auditData);
-
-        document.getElementById("totalCount").textContent = auditData.length;
-    }
-
-    function initEmptyTable() {
-        dataTableInstance = $('#auditTable').DataTable({
-            paging: true,
-            searching: true,
-            ordering: true,
-            pageLength: 5
-        });
-    }
-
-    function renderTable(data) {
+function renderTable(data) {
     const theadRow = document.getElementById("tableHeadRow");
     const tbody = document.getElementById("tableBody");
 
@@ -230,26 +253,23 @@
         return;
     }
 
-    // Columns to remove from display
-    const hiddenColumns = ["No.", "ADDRESS 3", "ADDRESS 4", "PRODUCT",];
+    const hiddenColumns = ["No.", "ADDRESS 3", "ADDRESS 4", "PRODUCT"];
 
-    // Rename columns
     const renameMap = {
         "PRODUCT": "CARD TYPE",
         "FILE NAME": "FILE NAME"
     };
 
-    // Identify final column headers
     const keys = Object.keys(data[0]).filter(k => !hiddenColumns.includes(k));
 
-    // Build table header
+    // Header
     keys.forEach(key => {
         const th = document.createElement("th");
-        th.textContent = renameMap[key] || key; // Replace name if found
+        th.textContent = renameMap[key] || key;
         theadRow.appendChild(th);
     });
 
-    // Build table body
+    // Body
     data.forEach(row => {
         const tr = document.createElement("tr");
 
@@ -262,7 +282,6 @@
         tbody.appendChild(tr);
     });
 
-    // Reinitialize the DataTable
     $('#auditTable').DataTable({
         paging: true,
         searching: true,
@@ -272,100 +291,126 @@
     });
 }
 
+function renderCharts(data) {
+    if (barChart) barChart.destroy();
+    if (pieChart) pieChart.destroy();
 
-    function renderCharts(data) {
-        if (barChart) {
-            barChart.destroy();
-            barChart = null;
+    if (!data.length) return;
+
+    const statusColumnName = Object.keys(data[0]).find(key =>
+        key.toLowerCase().includes("status")
+    );
+
+    if (!statusColumnName) return;
+
+    let statusCounts = {
+        "delivered": 0,
+        "returned to sender": 0,
+        "in progress": 0
+    };
+
+    data.forEach(row => {
+        const raw = row[statusColumnName];
+        if (!raw) return;
+        const value = String(raw).trim().toLowerCase();
+        if (statusCounts[value] !== undefined) {
+            statusCounts[value]++;
         }
-        if (pieChart) {
-            pieChart.destroy();
-            pieChart = null;
-        }
+    });
 
-        if (!data.length) return;
+    const labels = ["Delivered", "Returned to Sender", "In Progress"];
+    const values = [
+        statusCounts["delivered"],
+        statusCounts["returned to sender"],
+        statusCounts["in progress"]
+    ];
 
-        const statusColumnName = Object.keys(data[0]).find(key =>
-            key.toLowerCase().includes("status")
-        );
-        if (!statusColumnName) {
-            console.warn("No 'Status' column found in Excel.");
-            return;
-        }
+    const bgColors = [
+        'rgba(75, 192, 192, 0.7)',
+        'rgba(255, 99, 132, 0.7)',
+        'rgba(255, 206, 86, 0.7)'
+    ];
 
-        let statusCounts = {
-            "delivered": 0,
-            "returned to sender": 0,
-            "in progress": 0
-        };
+    const borderColors = [
+        'rgba(75, 192, 192, 1)',
+        'rgba(255, 99, 132, 1)',
+        'rgba(255, 206, 86, 1)'
+    ];
 
-        data.forEach(row => {
-            const raw = row[statusColumnName];
-            if (!raw) return;
-            const value = String(raw).trim().toLowerCase();
-            if (statusCounts.hasOwnProperty(value)) {
-                statusCounts[value]++;
-            }
-        });
+    // Bar Chart
+    const barCtx = document.getElementById('statusBarChart').getContext('2d');
+    barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Number of Records',
+                data: values,
+                backgroundColor: bgColors,
+                borderColor: borderColors,
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true }
+    });
 
-        const labels = ["Delivered", "Returned to Sender", "In Progress"];
-        const values = [
-            statusCounts["delivered"],
-            statusCounts["returned to sender"],
-            statusCounts["in progress"]
-        ];
+    // Pie Chart
+    const pieCtx = document.getElementById('statusPieChart').getContext('2d');
+    pieChart = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: bgColors,
+                borderColor: borderColors
+            }]
+        },
+        options: { responsive: true }
+    });
+}
 
-        const bgColors = [
-            'rgba(75, 192, 192, 0.7)',
-            'rgba(255, 99, 132, 0.7)',
-            'rgba(255, 206, 86, 0.7)'
-        ];
-        const borderColors = [
-            'rgba(75, 192, 192, 1)',
-            'rgba(255, 99, 132, 1)',
-            'rgba(255, 206, 86, 1)'
-        ];
 
-        const barCtx = document.getElementById('statusBarChart').getContext('2d');
-        barChart = new Chart(barCtx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Number of Records',
-                    data: values,
-                    backgroundColor: bgColors,
-                    borderColor: borderColors,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { beginAtZero: true, ticks: { precision: 0 } }
-                }
-            }
-        });
+// ============================================================
 
-        const pieCtx = document.getElementById('statusPieChart').getContext('2d');
-        pieChart = new Chart(pieCtx, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: bgColors,
-                    borderColor: borderColors
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
-            }
-        });
+// Save table data
+function saveToLocalStorage() {
+    try {
+        localStorage.setItem("auditDataStore", JSON.stringify(auditData));
+    } catch (e) {
+        console.error("LocalStorage Save Error:", e);
     }
+}
+
+// Load table data
+function loadFromLocalStorage() {
+    const stored = localStorage.getItem("auditDataStore");
+    if (stored) {
+        try {
+            return JSON.parse(stored);
+        } catch (e) {
+            console.error("LocalStorage Read Error:", e);
+        }
+    }
+    return null;
+}
+
+// When page loads, override initial data if saved exists
+$(document).ready(function () {
+    const saved = loadFromLocalStorage();
+    if (saved && saved.length > 0) {
+        auditData = saved;
+        loadDashboard(auditData, false);
+    }
+});
+
+// Hook loadDashboard to save every update
+const originalLoadDashboard = loadDashboard;
+loadDashboard = function (newData, append) {
+    originalLoadDashboard(newData, append);
+    saveToLocalStorage();
+};
+
 </script>
 
 </body>
