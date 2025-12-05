@@ -2,8 +2,8 @@ const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
     host: 'localhost',
-    user: 'root',
-    password: 'Republic_C207',
+    user: 'root',          // <-- CHANGE if your MySQL username is different
+    password: 'Republic_C207',          // <-- CHANGE if your MySQL has a password
     database: 'fyp_ga_2025',
     waitForConnections: true,
     connectionLimit: 10,
