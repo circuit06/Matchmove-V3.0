@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Exception Records – Returned To Sender</title>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+    <style>
+        body {
+            background-color: #f4f6f8;
+        }
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('partial/navbar') %>
+    <%- include('partial/sidebar') %>
+
+<div class="container mt-4">
+
+    <h2 class="text-center mb-3">Exception Records</h2>
+    <p class="text-center text-muted">Showing ONLY rows where Status = <strong>Returned To Sender</strong></p>
+
+    <div class="card p-3">
+        <div class="table-responsive">
+            <table id="exceptionTable" class="table table-bordered table-hover table-sm">
+                <thead>
+                    <tr id="exceptionHeadRow">
+                        <th class="text-muted">Load Excel in Dashboard First</th>
+                    </tr>
+                </thead>
+                <tbody id="exceptionBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- JS libraries -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    // 🚨 IMPORTANT: We read the SAME global auditData from dashboard
+    // Your dashboard has: let auditData = <%- JSON.stringify(data || []) %>;
+    // We load it again in this page:
+
+    let auditData = JSON.parse(localStorage.getItem("auditData")) || [];
+
+    $(document).ready(function () {
+        if (auditData.length === 0) {
+            alert("No data found. Please upload Excel in Dashboard first.");
+            return;
+        }
+
+        renderExceptionTable();
+    });
+
+    // =========== FILTER ONLY RETURNED TO SENDER ===========
+    function getExceptionRows() {
+        return auditData.filter(row => {
+            const statusColumn = Object.keys(row).find(k => k.toLowerCase().includes("status"));
+            if (!statusColumn) return false;
+
+            return String(row[statusColumn]).trim().toLowerCase() === "returned to sender";
+        });
+    }
+
+    // =========== RENDER TABLE ===========
+    function renderExceptionTable() {
+        const data = getExceptionRows();
+
+        const headRow = document.getElementById("exceptionHeadRow");
+        const body = document.getElementById("exceptionBody");
+
+        headRow.innerHTML = "";
+        body.innerHTML = "";
+
+        if (data.length === 0) {
+            headRow.innerHTML = '<th>No Returned To Sender records found</th>';
+            return;
+        }
+
+        // Create table headers
+        const keys = Object.keys(data[0]);
+        keys.forEach(k => {
+            const th = document.createElement("th");
+            th.textContent = k;
+            headRow.appendChild(th);
+        });
+
+        // Create table rows
+        data.forEach(row => {
+            const tr = document.createElement("tr");
+            Object.values(row).forEach(val => {
+                const td = document.createElement("td");
+                td.textContent = val;
+                tr.appendChild(td);
+            });
+            body.appendChild(tr);
+        });
+
+        // Apply DataTables
+        $('#exceptionTable').DataTable({
+            paging: true,
+            searching: true,
+            ordering: true,
+            pageLength: 10
+        });
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Dashboard</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            background-color: #f4f6f8;
+            font-size: 0.9rem;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        table.dataTable thead th {
+            background-color: #343a40;
+            color: white;
+        }
+
+        table.dataTable tbody tr:hover {
+            background-color: #dee2e6;
+        }
+
+        #dropZone {
+            border: 2px dashed #6c757d;
+            border-radius: 10px;
+            padding: 25px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #dropZone.dragover {
+            background: #e9ecef;
+        }
+        
+        #statusPieChart {
+            max-width: 250px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('partial/navbar') %>
+    <%- include('partial/sidebar') %>
+
+<div class="container mt-4">
+
+    <div class="dashboard-header">
+        <h2>Audit Trail Dashboard</h2>
+        <p>Upload one or more Excel files to see combined table and charts</p>
+        <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            Upload Excel File(s)
+        </button>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <h6 class="mb-2">Status Overview (Bar Chart)</h6>
+        <div class="mb-2">
+            <strong>Total Records: <span id="totalCount">0</span></strong>
+        </div>
+        <canvas id="statusBarChart" height="120"></canvas>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <h6 class="mb-3">Status Distribution (Pie Chart)</h6>
+        <canvas id="statusPieChart" width="200" height="200"></canvas>
+    </div>
+
+    <div class="card p-2">
+        <div class="table-responsive">
+            <table id="auditTable" class="table table-sm table-bordered table-hover">
+                <thead>
+                    <tr id="tableHeadRow">
+                        <th class="text-muted">Upload an Excel file to view data</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="uploadModalLabel">Upload Excel File(s)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="text-center mb-2">
+            <small class="text-muted">Drag & drop or click to browse. New files will be appended to existing data.</small>
+        </div>
+
+        <div class="text-center" id="dropZone">
+            <h6 class="mb-1">📥 Drag & Drop Excel File Here</h6>
+            <p class="text-muted mb-1">or click to browse</p>
+            <small class="text-muted">Supported formats: .xlsx, .xls</small>
+            <input type="file" id="excelInput" accept=".xlsx,.xls" hidden>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    let auditData = <%- JSON.stringify(data || []) %>;
+
+    let barChart = null;
+    let pieChart = null;
+    let dataTableInstance = null;
+
+    $(document).ready(function () {
+        setupDragAndDrop();
+
+        if (auditData.length > 0) {
+            loadDashboard(auditData, false);
+        } else {
+            initEmptyTable();
+        }
+    });
+
+    function setupDragAndDrop() {
+        const dropZone = document.getElementById("dropZone");
+        const excelInput = document.getElementById("excelInput");
+
+        dropZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropZone.classList.add("dragover");
+        });
+
+        dropZone.addEventListener("dragleave", () => {
+            dropZone.classList.remove("dragover");
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropZone.classList.remove("dragover");
+            const file = e.dataTransfer.files[0];
+            if (file) readExcel(file);
+        });
+
+        dropZone.addEventListener("click", () => excelInput.click());
+
+        excelInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) readExcel(file);
+        });
+    }
+
+    function readExcel(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+            loadDashboard(jsonData, true);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function loadDashboard(newData, append) {
+        if (!newData) return;
+
+        if (append) {
+            auditData = auditData.concat(newData);
+        } else {
+            auditData = newData;
+        }
+
+        renderTable(auditData);
+        renderCharts(auditData);
+
+        document.getElementById("totalCount").textContent = auditData.length;
+    }
+
+    function initEmptyTable() {
+        dataTableInstance = $('#auditTable').DataTable({
+            paging: true,
+            searching: true,
+            ordering: true,
+            pageLength: 5
+        });
+    }
+
+    function renderTable(data) {
+        const theadRow = document.getElementById("tableHeadRow");
+        const tbody = document.getElementById("tableBody");
+
+        if ($.fn.DataTable.isDataTable('#auditTable')) {
+            $('#auditTable').DataTable().clear().destroy();
+        }
+
+        theadRow.innerHTML = "";
+        tbody.innerHTML = "";
+
+        if (!data.length) {
+            theadRow.innerHTML = '<th class="text-muted">No data available</th>';
+        } else {
+            const keys = Object.keys(data[0]);
+            keys.forEach(key => {
+                const th = document.createElement("th");
+                th.textContent = key;
+                theadRow.appendChild(th);
+            });
+
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+                Object.values(row).forEach(value => {
+                    const td = document.createElement("td");
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        dataTableInstance = $('#auditTable').DataTable({
+            paging: true,
+            searching: true,
+            ordering: true,
+            pageLength: 5,
+            lengthMenu: [5, 10, 20, 50, 100, 150, 200]
+        });
+    }
+
+    function renderCharts(data) {
+        if (barChart) {
+            barChart.destroy();
+            barChart = null;
+        }
+        if (pieChart) {
+            pieChart.destroy();
+            pieChart = null;
+        }
+
+        if (!data.length) return;
+
+        const statusColumnName = Object.keys(data[0]).find(key =>
+            key.toLowerCase().includes("status")
+        );
+        if (!statusColumnName) {
+            console.warn("No 'Status' column found in Excel.");
+            return;
+        }
+
+        let statusCounts = {
+            "delivered": 0,
+            "returned to sender": 0,
+            "in progress": 0
+        };
+
+        data.forEach(row => {
+            const raw = row[statusColumnName];
+            if (!raw) return;
+            const value = String(raw).trim().toLowerCase();
+            if (statusCounts.hasOwnProperty(value)) {
+                statusCounts[value]++;
+            }
+        });
+
+        const labels = ["Delivered", "Returned to Sender", "In Progress"];
+        const values = [
+            statusCounts["delivered"],
+            statusCounts["returned to sender"],
+            statusCounts["in progress"]
+        ];
+
+        const bgColors = [
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(255, 206, 86, 0.7)'
+        ];
+        const borderColors = [
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 99, 132, 1)',
+            'rgba(255, 206, 86, 1)'
+        ];
+
+        const barCtx = document.getElementById('statusBarChart').getContext('2d');
+        barChart = new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Number of Records',
+                    data: values,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } }
+                }
+            }
+        });
+
+        const pieCtx = document.getElementById('statusPieChart').getContext('2d');
+        pieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
