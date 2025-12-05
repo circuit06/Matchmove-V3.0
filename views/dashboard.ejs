@@ -215,45 +215,63 @@
     }
 
     function renderTable(data) {
-        const theadRow = document.getElementById("tableHeadRow");
-        const tbody = document.getElementById("tableBody");
+    const theadRow = document.getElementById("tableHeadRow");
+    const tbody = document.getElementById("tableBody");
 
-        if ($.fn.DataTable.isDataTable('#auditTable')) {
-            $('#auditTable').DataTable().clear().destroy();
-        }
-
-        theadRow.innerHTML = "";
-        tbody.innerHTML = "";
-
-        if (!data.length) {
-            theadRow.innerHTML = '<th class="text-muted">No data available</th>';
-        } else {
-            const keys = Object.keys(data[0]);
-            keys.forEach(key => {
-                const th = document.createElement("th");
-                th.textContent = key;
-                theadRow.appendChild(th);
-            });
-
-            data.forEach(row => {
-                const tr = document.createElement("tr");
-                Object.values(row).forEach(value => {
-                    const td = document.createElement("td");
-                    td.textContent = value;
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-        }
-
-        dataTableInstance = $('#auditTable').DataTable({
-            paging: true,
-            searching: true,
-            ordering: true,
-            pageLength: 5,
-            lengthMenu: [5, 10, 20, 50, 100, 150, 200]
-        });
+    if ($.fn.DataTable.isDataTable('#auditTable')) {
+        $('#auditTable').DataTable().clear().destroy();
     }
+
+    theadRow.innerHTML = "";
+    tbody.innerHTML = "";
+
+    if (!data.length) {
+        theadRow.innerHTML = '<th class="text-muted">No data available</th>';
+        return;
+    }
+
+    // Columns to remove from display
+    const hiddenColumns = ["No.", "ADDRESS 3", "ADDRESS 4", "PRODUCT",];
+
+    // Rename columns
+    const renameMap = {
+        "PRODUCT": "CARD TYPE",
+        "FILE NAME": "FILE NAME"
+    };
+
+    // Identify final column headers
+    const keys = Object.keys(data[0]).filter(k => !hiddenColumns.includes(k));
+
+    // Build table header
+    keys.forEach(key => {
+        const th = document.createElement("th");
+        th.textContent = renameMap[key] || key; // Replace name if found
+        theadRow.appendChild(th);
+    });
+
+    // Build table body
+    data.forEach(row => {
+        const tr = document.createElement("tr");
+
+        keys.forEach(key => {
+            const td = document.createElement("td");
+            td.textContent = row[key] ?? "";
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+    });
+
+    // Reinitialize the DataTable
+    $('#auditTable').DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        pageLength: 5,
+        lengthMenu: [5, 10, 20, 50, 100, 150, 200]
+    });
+}
+
 
     function renderCharts(data) {
         if (barChart) {

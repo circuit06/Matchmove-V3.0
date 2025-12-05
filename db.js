@@ -13,7 +13,7 @@ const pool = mysql.createPool({
 async function testConnection() {
     try {
         const conn = await pool.getConnection();
-        console.log("Connected to MySQL fyp_ga_2025 successfully nga");
+        console.log("Connected to MySQL fyp_ga_2025 #limboontiatzane");
         conn.release();
     } catch (err) {
         console.error("MySQL connection failed:", err);
