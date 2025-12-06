@@ -37,26 +37,11 @@
         <div class="table-responsive">
             <table id="exceptionTable" class="table table-bordered table-hover table-sm">
                 <thead>
-                    <tr>
-                        <% if (data.length > 0) { %>
-                            <% Object.keys(data[0]).forEach(key => { %>
-                                <th><%= key %></th>
-                            <% }) %>
-                        <% } else { %>
-                            <th>No Returned To Sender records found</th>
-                        <% } %>
+                    <tr id="headRow">
+                        <th class="text-muted">Loading...</th>
                     </tr>
                 </thead>
-
-                <tbody>
-                    <% data.forEach(row => { %>
-                        <tr>
-                            <% Object.values(row).forEach(value => { %>
-                                <td><%= value %></td>
-                            <% }) %>
-                        </tr>
-                    <% }) %>
-                </tbody>
+                <tbody id="bodyRows"></tbody>
             </table>
         </div>
     </div>
@@ -69,13 +54,60 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
+
+    // ⭐ FIXED: Read from the correct localStorage key
+    let auditData = JSON.parse(localStorage.getItem("auditDataStore")) || [];
+
     $(document).ready(function () {
+
+        if (auditData.length === 0) {
+            document.getElementById("headRow").innerHTML =
+                "<th>No data found — upload Excel in Dashboard first</th>";
+            return;
+        }
+
+        const statusColumn = Object.keys(auditData[0]).find(k =>
+            k.toLowerCase().includes("status")
+        );
+
+        const filtered = auditData.filter(row =>
+            row[statusColumn] &&
+            String(row[statusColumn]).trim().toLowerCase() === "returned to sender"
+        );
+
+        const headRow = document.getElementById("headRow");
+        const bodyRows = document.getElementById("bodyRows");
+
+        headRow.innerHTML = "";
+        bodyRows.innerHTML = "";
+
+        if (filtered.length === 0) {
+            headRow.innerHTML = "<th>No Returned To Sender records found</th>";
+        } else {
+            // Create header
+            Object.keys(filtered[0]).forEach(key => {
+                headRow.innerHTML += `<th>${key}</th>`;
+            });
+
+            // Create body
+            filtered.forEach(row => {
+                let rowHTML = "<tr>";
+                Object.values(row).forEach(v => {
+                    rowHTML += `<td>${v}</td>`;
+                });
+                rowHTML += "</tr>";
+                bodyRows.innerHTML += rowHTML;
+            });
+        }
+
+        // Apply DataTable
         $('#exceptionTable').DataTable({
             pageLength: 10,
             ordering: true,
             searching: true
         });
     });
+
 </script>
 
 </body>

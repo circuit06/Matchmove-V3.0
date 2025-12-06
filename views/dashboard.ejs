@@ -18,22 +18,18 @@
 
         .dashboard-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .card {
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
         }
 
         table.dataTable thead th {
             background-color: #343a40;
-            color: white;
-        }
-
-        table.dataTable tbody tr:hover {
-            background-color: #dee2e6;
+            color: #fff;
         }
 
         #dropZone {
@@ -43,13 +39,41 @@
             cursor: pointer;
             transition: background 0.2s;
         }
+        #dropZone.dragover { background: #e9ecef; }
 
-        #dropZone.dragover {
-            background: #e9ecef;
+        /* Summary Cards */
+        .summary-card {
+            border-left-width: 6px;
+            border-radius: 10px;
+            padding: 18px;
+            background: #fff;
+        }
+        .summary-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #6c757d;
+        }
+        .summary-value {
+            font-size: 1.6rem;
+            font-weight: 700;
         }
 
+        .border-delivered { border-left-color: #17a2b8; }
+        .border-returned  { border-left-color: #dc3545; }
+        .border-progress  { border-left-color: #ffc107; }
+
+        /* Count labels under charts */
+        .chart-count-label {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #444;
+        }
+
+        /* Smaller Pie Chart */
         #statusPieChart {
-            max-width: 250px;
+            max-width: 140px !important;
+            max-height: 140px !important;
             margin: 0 auto;
         }
     </style>
@@ -64,34 +88,59 @@
 
     <div class="dashboard-header">
         <h2>Audit Trail Dashboard</h2>
-        <p>Upload one or more Excel files to see combined table and charts</p>
+        <p class="text-muted">Upload Excel files to generate a combined dataset with analytics</p>
 
         <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
             Upload Excel File(s)
         </button>
 
-        <!-- Optional clear button -->
         <button class="btn btn-danger mt-2" onclick="localStorage.removeItem('auditDataStore'); location.reload();">
             Clear Saved Data
         </button>
+
+        <!-- TOTAL RECORDS -->
+        <div class="mt-3">
+            <h5><strong>Total Records: <span id="totalRecordsHeader">0</span></strong></h5>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4" id="summaryCards">
+        <div class="col-md-4 mb-3">
+            <div class="summary-card border-delivered">
+                <div class="summary-title">Delivered</div>
+                <div class="summary-value" id="sumDelivered">0</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="summary-card border-returned">
+                <div class="summary-title">Returned to Sender</div>
+                <div class="summary-value" id="sumReturned">0</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="summary-card border-progress">
+                <div class="summary-title">In Progress</div>
+                <div class="summary-value" id="sumProgress">0</div>
+            </div>
+        </div>
     </div>
 
     <!-- Bar Chart -->
     <div class="card p-3 mb-3">
         <h6 class="mb-2">Status Overview (Bar Chart)</h6>
-        <div class="mb-2">
-            <strong>Total Records: <span id="totalCount">0</span></strong>
-        </div>
         <canvas id="statusBarChart" height="120"></canvas>
+        <div class="chart-count-label" id="barChartTotals"></div>
     </div>
 
     <!-- Pie Chart -->
     <div class="card p-3 mb-3">
         <h6 class="mb-3">Status Distribution (Pie Chart)</h6>
-        <canvas id="statusPieChart" width="200" height="200"></canvas>
+        <canvas id="statusPieChart" width="140" height="140"></canvas>
+        <div class="chart-count-label" id="pieChartTotals"></div>
     </div>
 
-    <!-- Table -->
+    <!-- Data Table -->
     <div class="card p-2">
         <div class="table-responsive">
             <table id="auditTable" class="table table-sm table-bordered table-hover">
@@ -107,39 +156,38 @@
 
 </div>
 
+
 <!-- Upload Modal -->
-<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
 
       <div class="modal-header">
-        <h5 class="modal-title" id="uploadModalLabel">Upload Excel File(s)</h5>
+        <h5 class="modal-title">Upload Excel File(s)</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body">
-
         <div class="text-center mb-2">
-            <small class="text-muted">Drag & drop or click to browse. New files will be appended to existing data.</small>
+            <small class="text-muted">Drag & drop or click to browse</small>
         </div>
 
         <div class="text-center" id="dropZone">
             <h6 class="mb-1">📥 Drag & Drop Excel File Here</h6>
-            <p class="text-muted mb-1">or click to browse</p>
-            <small class="text-muted">Supported formats: .xlsx, .xls</small>
-
+            <p class="text-muted">or click to browse</p>
+            <small class="text-muted">Supported: .xlsx, .xls</small>
             <input type="file" id="excelInput" accept=".xlsx,.xls" hidden>
         </div>
-
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
       </div>
 
     </div>
   </div>
 </div>
+
 
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -150,15 +198,17 @@
 <script>
 
 let auditData = <%- JSON.stringify(data || []) %>;
-
 let barChart = null;
 let pieChart = null;
-let dataTableInstance = null;
-
-// ==============================
 
 $(document).ready(function () {
     setupDragAndDrop();
+
+    // Load saved data if available
+    const saved = loadFromLocalStorage();
+    if (saved && saved.length > 0) {
+        auditData = saved;
+    }
 
     if (auditData.length > 0) {
         loadDashboard(auditData, false);
@@ -167,20 +217,19 @@ $(document).ready(function () {
     }
 });
 
+/* Drag & Drop */
 function setupDragAndDrop() {
     const dropZone = document.getElementById("dropZone");
     const excelInput = document.getElementById("excelInput");
 
-    dropZone.addEventListener("dragover", (e) => {
+    dropZone.addEventListener("dragover", e => {
         e.preventDefault();
         dropZone.classList.add("dragover");
     });
 
-    dropZone.addEventListener("dragleave", () => {
-        dropZone.classList.remove("dragover");
-    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
 
-    dropZone.addEventListener("drop", (e) => {
+    dropZone.addEventListener("drop", e => {
         e.preventDefault();
         dropZone.classList.remove("dragover");
         const file = e.dataTransfer.files[0];
@@ -188,53 +237,58 @@ function setupDragAndDrop() {
     });
 
     dropZone.addEventListener("click", () => excelInput.click());
-
-    excelInput.addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (file) readExcel(file);
+    excelInput.addEventListener("change", e => {
+        if (e.target.files[0]) readExcel(e.target.files[0]);
     });
 }
 
+/* Read Excel */
 function readExcel(file) {
     const reader = new FileReader();
     reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-
+        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(sheet);
-
         loadDashboard(jsonData, true);
     };
     reader.readAsArrayBuffer(file);
 }
 
-// ----- Loads Table & Charts -----
-
+/* Main Dashboard Render */
 function loadDashboard(newData, append) {
-    if (!newData) return;
-
-    if (append) {
-        auditData = auditData.concat(newData);
-    } else {
-        auditData = newData;
-    }
+    auditData = append ? auditData.concat(newData) : newData;
 
     renderTable(auditData);
     renderCharts(auditData);
+    renderSummary(auditData);
 
-    document.getElementById("totalCount").textContent = auditData.length;
+    // Update top total
+    document.getElementById("totalRecordsHeader").innerText = auditData.length;
+
+    saveToLocalStorage();
 }
 
-function initEmptyTable() {
-    $('#auditTable').DataTable({
-        paging: true,
-        searching: true,
-        ordering: true,
-        pageLength: 5
+/* Summary Cards */
+function renderSummary(data) {
+    let delivered = 0, returned = 0, progress = 0;
+
+    const statusColumn = Object.keys(data[0]).find(k => k.toLowerCase().includes("status"));
+
+    data.forEach(row => {
+        const raw = String(row[statusColumn] || "").trim().toLowerCase();
+        if (raw === "delivered") delivered++;
+        if (raw === "returned to sender") returned++;
+        if (raw === "in progress") progress++;
     });
+
+    document.getElementById("sumDelivered").textContent = delivered;
+    document.getElementById("sumReturned").textContent = returned;
+    document.getElementById("sumProgress").textContent = progress;
+}
+
+/* Render Table */
+function initEmptyTable() {
+    $('#auditTable').DataTable({ paging: true });
 }
 
 function renderTable(data) {
@@ -249,167 +303,116 @@ function renderTable(data) {
     tbody.innerHTML = "";
 
     if (!data.length) {
-        theadRow.innerHTML = '<th class="text-muted">No data available</th>';
+        theadRow.innerHTML = `<th class="text-muted">No data available</th>`;
         return;
     }
 
-    const hiddenColumns = ["No.", "ADDRESS 3", "ADDRESS 4", "PRODUCT"];
+    const hiddenCols = ["No.", "ADDRESS 3", "ADDRESS 4", "PRODUCT"];
+    const rename = { "PRODUCT": "CARD TYPE" };
 
-    const renameMap = {
-        "PRODUCT": "CARD TYPE",
-        "FILE NAME": "FILE NAME"
-    };
+    const keys = Object.keys(data[0]).filter(k => !hiddenCols.includes(k));
 
-    const keys = Object.keys(data[0]).filter(k => !hiddenColumns.includes(k));
-
-    // Header
-    keys.forEach(key => {
+    keys.forEach(k => {
         const th = document.createElement("th");
-        th.textContent = renameMap[key] || key;
+        th.textContent = rename[k] || k;
         theadRow.appendChild(th);
     });
 
-    // Body
     data.forEach(row => {
         const tr = document.createElement("tr");
-
-        keys.forEach(key => {
+        keys.forEach(k => {
             const td = document.createElement("td");
-            td.textContent = row[key] ?? "";
+            td.textContent = row[k] ?? "";
             tr.appendChild(td);
         });
-
         tbody.appendChild(tr);
     });
 
     $('#auditTable').DataTable({
-        paging: true,
-        searching: true,
-        ordering: true,
-        pageLength: 5,
-        lengthMenu: [5, 10, 20, 50, 100, 150, 200]
+        pageLength: 10,
+        ordering: true
     });
 }
 
+/* Charts */
 function renderCharts(data) {
     if (barChart) barChart.destroy();
     if (pieChart) pieChart.destroy();
 
-    if (!data.length) return;
-
-    const statusColumnName = Object.keys(data[0]).find(key =>
-        key.toLowerCase().includes("status")
+    const statusColumn = Object.keys(data[0]).find(k =>
+        k.toLowerCase().includes("status")
     );
 
-    if (!statusColumnName) return;
-
-    let statusCounts = {
-        "delivered": 0,
-        "returned to sender": 0,
-        "in progress": 0
-    };
+    let delivered = 0, returned = 0, progress = 0;
 
     data.forEach(row => {
-        const raw = row[statusColumnName];
-        if (!raw) return;
-        const value = String(raw).trim().toLowerCase();
-        if (statusCounts[value] !== undefined) {
-            statusCounts[value]++;
-        }
+        const raw = String(row[statusColumn] || "").trim().toLowerCase();
+        if (raw === "delivered") delivered++;
+        if (raw === "returned to sender") returned++;
+        if (raw === "in progress") progress++;
     });
 
     const labels = ["Delivered", "Returned to Sender", "In Progress"];
-    const values = [
-        statusCounts["delivered"],
-        statusCounts["returned to sender"],
-        statusCounts["in progress"]
-    ];
+    const values = [delivered, returned, progress];
 
     const bgColors = [
-        'rgba(75, 192, 192, 0.7)',
-        'rgba(255, 99, 132, 0.7)',
-        'rgba(255, 206, 86, 0.7)'
+        'rgba(23,162,184,0.7)',
+        'rgba(220,53,69,0.7)',
+        'rgba(255,193,7,0.7)'
     ];
 
     const borderColors = [
-        'rgba(75, 192, 192, 1)',
-        'rgba(255, 99, 132, 1)',
-        'rgba(255, 206, 86, 1)'
+        'rgba(23,162,184,1)',
+        'rgba(220,53,69,1)',
+        'rgba(255,193,7,1)'
     ];
 
     // Bar Chart
-    const barCtx = document.getElementById('statusBarChart').getContext('2d');
-    barChart = new Chart(barCtx, {
+    barChart = new Chart(document.getElementById("statusBarChart"), {
         type: 'bar',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
-                label: 'Number of Records',
+                label: 'Count',
                 data: values,
                 backgroundColor: bgColors,
                 borderColor: borderColors,
                 borderWidth: 1
             }]
-        },
-        options: { responsive: true }
+        }
     });
 
-    // Pie Chart
-    const pieCtx = document.getElementById('statusPieChart').getContext('2d');
-    pieChart = new Chart(pieCtx, {
+    // Pie Chart (smaller)
+    pieChart = new Chart(document.getElementById("statusPieChart"), {
         type: 'pie',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
                 data: values,
-                backgroundColor: bgColors,
-                borderColor: borderColors
+                backgroundColor: bgColors
             }]
-        },
-        options: { responsive: true }
-    });
-}
-
-
-// ============================================================
-
-// Save table data
-function saveToLocalStorage() {
-    try {
-        localStorage.setItem("auditDataStore", JSON.stringify(auditData));
-    } catch (e) {
-        console.error("LocalStorage Save Error:", e);
-    }
-}
-
-// Load table data
-function loadFromLocalStorage() {
-    const stored = localStorage.getItem("auditDataStore");
-    if (stored) {
-        try {
-            return JSON.parse(stored);
-        } catch (e) {
-            console.error("LocalStorage Read Error:", e);
         }
-    }
-    return null;
+    });
+
+    // Labels under charts
+    document.getElementById("barChartTotals").innerText =
+        `Delivered: ${delivered} | Returned: ${returned} | In Progress: ${progress}`;
+
+    document.getElementById("pieChartTotals").innerText =
+        `Delivered: ${delivered} | Returned: ${returned} | In Progress: ${progress}`;
 }
 
-// When page loads, override initial data if saved exists
-$(document).ready(function () {
-    const saved = loadFromLocalStorage();
-    if (saved && saved.length > 0) {
-        auditData = saved;
-        loadDashboard(auditData, false);
+/* Local Storage */
+function saveToLocalStorage() {
+    localStorage.setItem("auditDataStore", JSON.stringify(auditData));
+}
+function loadFromLocalStorage() {
+    try {
+        return JSON.parse(localStorage.getItem("auditDataStore"));
+    } catch {
+        return null;
     }
-});
-
-// Hook loadDashboard to save every update
-const originalLoadDashboard = loadDashboard;
-loadDashboard = function (newData, append) {
-    originalLoadDashboard(newData, append);
-    saveToLocalStorage();
-};
+}
 
 </script>
 
