@@ -4,8 +4,30 @@ const path = require('path');
 const XLSX = require('xlsx');
 const db = require('./db');
 const session = require('express-session');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
+
+// ========== FILE UPLOAD (PROFILE PICTURE) SETUP ==========
+
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir); // store inside /public/uploads
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname.replace(/\s+/g, '_');
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({ storage });
 
 // Body parsers (with larger limit for Excel JSON)
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -26,6 +48,14 @@ app.use(
     saveUninitialized: false,
   })
 );
+
+// 🔒 Disable cache so back button can't reopen protected pages after logout
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
 
 // Make user available in all EJS views if needed
 app.use((req, res, next) => {
@@ -60,8 +90,8 @@ app.get('/login', (req, res) => {
   res.render('login', { errors: [], messages: [] });
 });
 
-// REGISTER PAGE (admin only)
-app.get('/register', requireAdmin, (req, res) => {
+// REGISTER PAGE (public – anyone can open)
+app.get('/register', (req, res) => {
   res.render('register', { messages: [] });
 });
 
@@ -130,7 +160,8 @@ app.post('/login', async (req, res) => {
       id: user.id,
       username: user.username,
       email: user.email,
-      role: user.role
+      role: user.role,
+      profile_picture: user.profile_picture || 'default.png'
     };
 
     console.log("LOGIN SUCCESS — Redirecting user:", req.session.user);
@@ -145,8 +176,8 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// POST /register (admin creates new users)
-app.post('/register', async (req, res) => {
+// POST /register (public signup) + optional profile picture
+app.post('/register', upload.single('profilePic'), async (req, res) => {
   const { userName, userPassword, userRole, userEmail } = req.body;
   let messages = [];
 
@@ -167,9 +198,15 @@ app.post('/register', async (req, res) => {
       return res.render('register', { messages });
     }
 
+    // Handle profile picture (optional)
+    let profilePic = 'default.png';
+    if (req.file) {
+      profilePic = req.file.filename;
+    }
+
     await db.query(
-      'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
-      [userName, userEmail, userPassword, userRole || 'user']
+      'INSERT INTO users (username, email, password_hash, role, profile_picture) VALUES (?, ?, ?, ?, ?)',
+      [userName, userEmail, userPassword, 'user', profilePic] // force role to 'user'
     );
 
     // Show success on login page
@@ -292,8 +329,8 @@ app.get('/profile', requireLogin, (req, res) => {
   });
 });
 
-// UPDATE PROFILE (EDIT & SAVE)
-app.post('/profile', requireLogin, async (req, res) => {
+// UPDATE PROFILE (EDIT & SAVE) + optional profile picture
+app.post('/profile', requireLogin, upload.single('profilePic'), async (req, res) => {
   const { userName, userEmail, userPassword } = req.body;
   const userId = req.session.user.id;
 
@@ -311,10 +348,16 @@ app.post('/profile', requireLogin, async (req, res) => {
       });
     }
 
-    // 🛠 Update username + email
+    // Determine profile picture
+    let profilePic = req.session.user.profile_picture || 'default.png';
+    if (req.file) {
+      profilePic = req.file.filename;
+    }
+
+    // 🛠 Update username + email + profile picture
     await db.query(
-      `UPDATE users SET username = ?, email = ? WHERE id = ?`,
-      [userName, userEmail, userId]
+      `UPDATE users SET username = ?, email = ?, profile_picture = ? WHERE id = ?`,
+      [userName, userEmail, profilePic, userId]
     );
 
     // 🔐 Update password only if user entered one
@@ -328,6 +371,7 @@ app.post('/profile', requireLogin, async (req, res) => {
     // 🔄 Update session so changes appear immediately
     req.session.user.username = userName;
     req.session.user.email = userEmail;
+    req.session.user.profile_picture = profilePic;
 
     messages.push("Profile updated successfully!");
 

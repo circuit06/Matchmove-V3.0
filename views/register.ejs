@@ -49,6 +49,20 @@
             opacity: 1;
         }
 
+        input[type="file"].form-control {
+            height: auto;
+            padding: 8px 10px;
+            font-size: 15px;
+            color: #999;
+        }
+
+        .file-label {
+            text-align: left;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #999;
+        }
+
         button {
             background-color: #d21404;
             color: white;
@@ -100,7 +114,7 @@
             </div>
         <% } %>
 
-        <form action="/register" method="POST">
+        <form action="/register" method="POST" enctype="multipart/form-data">
             <div class="mb-3">
                 <input 
                     type="text"
@@ -129,6 +143,16 @@
                     class="form-control"
                     placeholder="Enter a Password"
                     required>
+            </div>
+
+            <div class="mb-3 text-start">
+                <div class="file-label">Profile Picture (optional)</div>
+                <input 
+                    type="file"
+                    id="profilePic"
+                    name="profilePic"
+                    class="form-control"
+                    accept="image/*">
             </div>
 
             <button type="submit">Register</button>
