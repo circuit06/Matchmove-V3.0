@@ -12,30 +12,99 @@
 
     <style>
         body {
-            background-color: #f4f6f8;
+            background: #eef1f5;
+            backdrop-filter: blur(5px);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
-        .card {
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+
+        /* ----- FROSTED GLASS CARD ----- */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.45);
         }
+
+        /* Title styling */
+        h2 {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* Datatable styling */
+        table.dataTable thead th {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            font-weight: 600;
+            border-bottom: 2px solid #ddd !important;
+        }
+
+        table.dataTable tbody tr {
+            background-color: rgba(255, 255, 255, 0.6);
+        }
+
+        table.dataTable tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            transition: 0.2s ease;
+        }
+
+        th, td {
+            vertical-align: middle !important;
+        }
+
+        /* Rounded search box + select */
+        .dataTables_filter input,
+        .dataTables_length select {
+            border-radius: 10px !important;
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+        }
+
+        /* Center wrapper */
+        .container {
+            max-width: 1250px;
+        }
+
+        /* Bigger & Stronger Hover Effect */
+#exceptionTable tbody tr {
+    transition: all 0.25s ease;
+}
+
+#exceptionTable tbody tr:hover {
+    background: #ffffff !important;
+    transform: scale(1.03); /* 👈 super obvious hover size */
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    z-index: 10;
+    position: relative;
+    border-radius: 12px;
+}
+
+
+
+
     </style>
 </head>
 
 <body>
+
 <%- include('partial/navbar') %>
 <%- include('partial/sidebar') %>
 
 <div class="container mt-4">
 
-    <h2 class="text-center mb-3">Exception Records</h2>
-    <p class="text-center text-muted">
+    <h2 class="text-center mb-2">Exception Records</h2>
+    <p class="text-center text-muted mb-4">
         Showing ONLY rows where Status =
         <strong>Returned To Sender</strong>
     </p>
 
-    <div class="card p-3">
+    <!-- Frosted Glass Card -->
+    <div class="glass-card">
         <div class="table-responsive">
-            <table id="exceptionTable" class="table table-bordered table-hover table-sm">
+            <table id="exceptionTable" class="table table-hover table-sm">
                 <thead>
                     <tr id="headRow">
                         <th class="text-muted">Loading...</th>
@@ -55,28 +124,30 @@
 
 <script>
 
-    // ⭐ FIXED: Read from the correct localStorage key
+    // Read the correct stored table data
     let auditData = JSON.parse(localStorage.getItem("auditDataStore")) || [];
 
     $(document).ready(function () {
 
+        const headRow = document.getElementById("headRow");
+        const bodyRows = document.getElementById("bodyRows");
+
         if (auditData.length === 0) {
-            document.getElementById("headRow").innerHTML =
+            headRow.innerHTML =
                 "<th>No data found — upload Excel in Dashboard first</th>";
             return;
         }
 
+        // Auto-detect the Status column
         const statusColumn = Object.keys(auditData[0]).find(k =>
             k.toLowerCase().includes("status")
         );
 
+        // Filter status = Returned To Sender
         const filtered = auditData.filter(row =>
             row[statusColumn] &&
             String(row[statusColumn]).trim().toLowerCase() === "returned to sender"
         );
-
-        const headRow = document.getElementById("headRow");
-        const bodyRows = document.getElementById("bodyRows");
 
         headRow.innerHTML = "";
         bodyRows.innerHTML = "";
@@ -84,12 +155,12 @@
         if (filtered.length === 0) {
             headRow.innerHTML = "<th>No Returned To Sender records found</th>";
         } else {
-            // Create header
+            // Header
             Object.keys(filtered[0]).forEach(key => {
                 headRow.innerHTML += `<th>${key}</th>`;
             });
 
-            // Create body
+            // Body rows
             filtered.forEach(row => {
                 let rowHTML = "<tr>";
                 Object.values(row).forEach(v => {
@@ -100,7 +171,7 @@
             });
         }
 
-        // Apply DataTable
+        // Datatable activation
         $('#exceptionTable').DataTable({
             pageLength: 10,
             ordering: true,
