@@ -41,7 +41,8 @@
   <a href="/deliveryorder">Delivery Orders</a>
   <a href="/exception">Exceptions</a>
   <a href="/profile">My Profile</a>
-  <a href="/login">Logout</a>
+
+  <a href="/logout" style="color: red; font-weight: 600;">Logout</a>
 </div>
 
 <script>
@@ -49,12 +50,10 @@
   const menuIcon = document.getElementById("menuIcon");
   const closeBtn = document.getElementById("closeBtn");
 
-  // Open sidebar
   menuIcon.onclick = () => {
     sidebar.style.width = "250px";
   };
 
-  // Close sidebar
   closeBtn.onclick = () => {
     sidebar.style.width = "0";
   };

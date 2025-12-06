@@ -37,22 +37,12 @@
             to {opacity: 1; transform: translateY(0);}
         }
 
-        /* CENTER THE PROFILE HEADER */
-        .profile-title, 
-        .profile-subtitle {
-            text-align: center;
-        }
-
         .profile-title {
+            text-align: center;
             font-size: 28px;
             font-weight: 700;
             color: #333;
-            margin-bottom: 8px;
-        }
-
-        .profile-subtitle {
-            color: #6c757d;
-            margin-bottom: 25px;
+            margin-bottom: 12px;
         }
 
         .profile-field {
@@ -77,12 +67,6 @@
             margin-top: 25px;
         }
 
-        .alert {
-            max-width: 550px;
-            margin-bottom: 20px;
-        }
-
-        /* ---------- Custom Buttons ---------- */
         .btn-danger-custom {
             background-color: #d21404;
             color: #fff;
@@ -92,7 +76,6 @@
 
         .btn-danger-custom:hover {
             background-color: #a91b0d;
-            color: white;
             transform: translateY(-1px);
         }
 
@@ -105,8 +88,15 @@
 
         .btn-success-custom:hover {
             background-color: #218838;
-            color: white;
             transform: translateY(-1px);
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ddd;
         }
     </style>
 </head>
@@ -116,20 +106,30 @@
     <%- include('partial/sidebar') %>
 
     <div class="page-wrapper">
-
-        <% if (messages && messages.length > 0) { %>
-            <div class="alert alert-success">
-                <% messages.forEach(m => { %><div><%= m %></div><% }) %>
-            </div>
-        <% } %>
-
-        <% if (errors && errors.length > 0) { %>
-            <div class="alert alert-danger">
-                <% errors.forEach(e => { %><div><%= e %></div><% }) %>
-            </div>
-        <% } %>
-
         <div class="profile-card">
+
+            <% if (messages && messages.length > 0) { %>
+                <div class="alert alert-success">
+                    <% messages.forEach(m => { %><div><%= m %></div><% }) %>
+                </div>
+            <% } %>
+
+            <% if (errors && errors.length > 0) { %>
+                <div class="alert alert-danger">
+                    <% errors.forEach(e => { %><div><%= e %></div><% }) %>
+                </div>
+            <% } %>
+
+            <!-- SHOW PROFILE PIC ONLY IF REAL IMAGE EXISTS -->
+            <% if (user.profile_picture && user.profile_picture !== 'default.png') { %>
+                <div class="text-center mb-3">
+                    <img 
+                        src="/uploads/<%= user.profile_picture %>" 
+                        alt="Profile Picture"
+                        class="profile-avatar">
+                </div>
+            <% } %>
+
             <div class="profile-title">My Profile</div>
 
             <!-- VIEW MODE -->
@@ -156,7 +156,7 @@
 
             <!-- EDIT MODE -->
             <div id="editMode" style="display: none;">
-                <form action="/profile" method="POST">
+                <form action="/profile" method="POST" enctype="multipart/form-data">
 
                     <div class="profile-field">
                         <div class="label">Username</div>
@@ -173,10 +173,21 @@
                         <input type="password" class="form-control" name="userPassword" placeholder="Leave blank to keep current password" />
                     </div>
 
+                    <div class="profile-field">
+                        <div class="label">Profile Picture</div>
+                        <input 
+                            type="file" 
+                            name="profilePic" 
+                            class="form-control" 
+                            accept="image/*">
+                        <small class="text-muted">Leave empty to keep current picture.</small>
+                    </div>
+
                     <div class="btn-row d-flex gap-2">
                         <button type="submit" class="btn btn-success-custom w-50">Save Changes</button>
                         <button type="button" class="btn btn-danger-custom w-50" onclick="cancelEdit()">Cancel</button>
                     </div>
+
                 </form>
             </div>
 
