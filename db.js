@@ -2,8 +2,8 @@ const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
     host: 'localhost',
-    user: 'root',          // <-- CHANGE if your MySQL username is different
-    password: 'Republic_C207',          // <-- CHANGE if your MySQL has a password
+    user: 'root',
+    password: 'Republic_C207',
     database: 'fyp_ga_2025',
     waitForConnections: true,
     connectionLimit: 10,
@@ -13,7 +13,7 @@ const pool = mysql.createPool({
 async function testConnection() {
     try {
         const conn = await pool.getConnection();
-        console.log("Connected to MySQL fyp_ga_2025 #limboontiatzane");
+        console.log("Connected to MySQL fyp_ga_2025 u fucking black ass moneky nigger");
         conn.release();
     } catch (err) {
         console.error("MySQL connection failed:", err);
