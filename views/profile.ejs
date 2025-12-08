@@ -36,7 +36,7 @@
         .profile-layout {
             display: flex;
             gap: 50px;
-            align-items: flex-start;
+            width: 100%;
         }
 
         .profile-avatar {
@@ -84,15 +84,12 @@
             .profile-layout {
                 flex-direction: column;
                 align-items: center;
+                gap: 20px;
             }
 
             .profile-avatar {
                 width: 220px;
                 height: 220px;
-            }
-
-            .profile-field input {
-                font-size: 18px;
             }
         }
     </style>
@@ -110,61 +107,63 @@
 
                 <% if (user.profile_picture && user.profile_picture !== 'default.png') { %>
                     <img src="/uploads/<%= user.profile_picture %>" class="profile-avatar">
+
+                    <div style="flex: 1;">
                 <% } else { %>
-                    <img src="/images/default-avatar.png" class="profile-avatar">
+
+                    <div style="flex: 1; max-width: 650px; margin: 0 auto;">
                 <% } %>
 
-                <div style="flex: 1;">
-
-                    <div id="viewMode">
-                        <div class="profile-field">
-                            <label>Username</label>
-                            <input class="form-control" value="<%= user.username %>" disabled>
-                        </div>
-
-                        <div class="profile-field">
-                            <label>Email</label>
-                            <input class="form-control" value="<%= user.email %>" disabled>
-                        </div>
-
-                        <div class="profile-field">
-                            <label>Password</label>
-                            <input class="form-control" value="******" disabled>
-                        </div>
-                    </div>
-
-                    <!-- EDIT MODE -->
-                    <div id="editMode" style="display:none;">
-                        <form action="/profile" method="POST" enctype="multipart/form-data">
-
+                        <div id="viewMode">
                             <div class="profile-field">
                                 <label>Username</label>
-                                <input type="text" class="form-control" name="userName" value="<%= user.username %>">
+                                <input class="form-control" value="<%= user.username %>" disabled>
                             </div>
 
                             <div class="profile-field">
                                 <label>Email</label>
-                                <input type="email" class="form-control" name="userEmail" value="<%= user.email %>">
+                                <input class="form-control" value="<%= user.email %>" disabled>
                             </div>
 
                             <div class="profile-field">
-                                <label>New Password</label>
-                                <input type="password" class="form-control" name="userPassword" placeholder="Leave blank to keep current password">
+                                <label>Password</label>
+                                <input class="form-control" value="******" disabled>
                             </div>
+                        </div>
 
-                            <div class="profile-field">
-                                <label>Profile Picture</label>
-                                <input type="file" class="form-control" name="profilePic" accept="image/*">
-                            </div>
+                        <div id="editMode" style="display:none;">
+                            <form action="/profile" method="POST" enctype="multipart/form-data">
 
-                            <div class="d-flex gap-3">
-                                <button type="submit" class="btn btn-success w-50">Save</button>
-                                <button type="button" class="btn btn-danger w-50" onclick="cancelEdit()">Cancel</button>
-                            </div>
-                        </form>
+                                <div class="profile-field">
+                                    <label>Username</label>
+                                    <input type="text" class="form-control" name="userName" value="<%= user.username %>">
+                                </div>
+
+                                <div class="profile-field">
+                                    <label>Email</label>
+                                    <input type="email" class="form-control" name="userEmail" value="<%= user.email %>">
+                                </div>
+
+                                <div class="profile-field">
+                                    <label>New Password</label>
+                                    <input type="password" class="form-control" name="userPassword" placeholder="Leave blank to keep current password">
+                                </div>
+
+                                <div class="profile-field">
+                                    <label>Profile Picture</label>
+                                    <input type="file" class="form-control" name="profilePic" accept="image/*">
+                                </div>
+
+                                <div class="d-flex gap-3">
+                                    <button type="submit" class="btn btn-success w-50">Save</button>
+                                    <button type="button" class="btn btn-danger w-50" onclick="cancelEdit()">Cancel</button>
+                                </div>
+
+                            </form>
+                        </div>
+
                     </div>
 
-                </div>
             </div>
 
             <div class="edit-btn-wrapper" id="editBtnArea">
