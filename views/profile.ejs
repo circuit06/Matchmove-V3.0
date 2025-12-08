@@ -102,16 +102,36 @@
     <div class="page-wrapper">
         <div class="profile-container">
 
+            <% if (messages && messages.length > 0) { %>
+                <div class="alert alert-success text-center">
+                    <% messages.forEach(m => { %>
+                        <div><%= m %></div>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <% if (errors && errors.length > 0) { %>
+                <div class="alert alert-danger text-center">
+                    <% errors.forEach(e => { %>
+                        <div><%= e %></div>
+                    <% }) %>
+                </div>
+            <% } %>
+
             <div class="profile-title">My Profile</div>
+
             <div class="profile-layout">
 
                 <% if (user.profile_picture && user.profile_picture !== 'default.png') { %>
+
                     <img src="/uploads/<%= user.profile_picture %>" class="profile-avatar">
 
                     <div style="flex: 1;">
+
                 <% } else { %>
 
                     <div style="flex: 1; max-width: 650px; margin: 0 auto;">
+
                 <% } %>
 
                         <div id="viewMode">

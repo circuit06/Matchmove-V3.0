@@ -322,12 +322,20 @@ app.delete('/api/audit-records', requireAdmin, async (req, res) => {
 app.get('/profile', requireLogin, (req, res) => {
   const user = req.session.user;
 
+  const messages = req.session.messages || [];
+  const errors = req.session.errors || [];
+
+  // clear stored messages once displayed
+  req.session.messages = [];
+  req.session.errors = [];
+
   return res.render('profile', {
     user,
-    messages: [],
-    errors: []
+    messages,
+    errors
   });
 });
+
 
 // UPDATE PROFILE (EDIT & SAVE) + optional profile picture
 app.post('/profile', requireLogin, upload.single('profilePic'), async (req, res) => {
@@ -354,13 +362,13 @@ app.post('/profile', requireLogin, upload.single('profilePic'), async (req, res)
       profilePic = req.file.filename;
     }
 
-    // 🛠 Update username + email + profile picture
+    //Update username + email + profile picture
     await db.query(
       `UPDATE users SET username = ?, email = ?, profile_picture = ? WHERE id = ?`,
       [userName, userEmail, profilePic, userId]
     );
 
-    // 🔐 Update password only if user entered one
+    //Update password only if user entered one
     if (userPassword && userPassword.trim() !== "") {
       await db.query(
         `UPDATE users SET password_hash = ? WHERE id = ?`,
