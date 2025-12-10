@@ -17,73 +17,84 @@
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
-        /* ----- FROSTED GLASS CARD ----- */
+        /* Frosted Card */
         .glass-card {
             background: rgba(255, 255, 255, 0.55);
             backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
             border-radius: 20px;
             padding: 25px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.45);
+            border: 1px solid rgba(255, 0, 0, 0.15);
         }
 
-        /* Title styling */
-        h2 {
+        #exceptionTable thead th {
+            background: #fff5f5;
+            color: #b40000;
             font-weight: 700;
-            letter-spacing: -0.5px;
+            border-bottom: 2px solid #e2b4b4 !important;
         }
 
-        /* Datatable styling */
-        table.dataTable thead th {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
+        #exceptionTable tbody td {
+            border-bottom: 1px solid #f4c7c7 !important;
+        }
+
+        #exceptionTable tbody tr:hover {
+            background: #fffafa !important;
+            box-shadow: 0 3px 10px rgba(255, 0, 0, 0.15);
+            transform: scale(1.01);
+            border-radius: 12px;
+        }
+
+        .action-btn {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-right: 4px;
+            cursor: pointer;
+        }
+
+        .view-btn {
+            background: #e6f2ff;
+            border: 1px solid #97c3ff;
+            color: #004a99;
+        }
+
+        .edit-btn {
+            background: #fff0e0;
+            border: 1px solid #ffbe78;
+            color: #b85c00;
+        }
+
+        /* Status badge */
+        .status-badge {
+            background: #ffe5e5;
+            color: #b40000;
+            padding: 4px 12px;
+            border-radius: 12px;
             font-weight: 600;
-            border-bottom: 2px solid #ddd !important;
+            font-size: 0.8rem;
+            display: inline-block;
+            text-align: center;
+            min-width: 140px;
         }
 
-        table.dataTable tbody tr {
-            background-color: rgba(255, 255, 255, 0.6);
+
+        /* Make the edit modal scrollable */
+        #editModal .modal-dialog {
+            max-height: 90vh; 
         }
 
-        table.dataTable tbody tr:hover {
-            background-color: rgba(255, 255, 255, 0.9);
-            transition: 0.2s ease;
+        #editModal .modal-content {
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        th, td {
-            vertical-align: middle !important;
+        #editModal .modal-body {
+            overflow-y: auto;
+            padding-right: 10px;
         }
-
-        /* Rounded search box + select */
-        .dataTables_filter input,
-        .dataTables_length select {
-            border-radius: 10px !important;
-            border: 1px solid #ccc;
-            padding: 6px 10px;
-        }
-
-        /* Center wrapper */
-        .container {
-            max-width: 1250px;
-        }
-
-        /* Bigger & Stronger Hover Effect */
-#exceptionTable tbody tr {
-    transition: all 0.25s ease;
-}
-
-#exceptionTable tbody tr:hover {
-    background: #ffffff !important;
-    transform: scale(1.03); /* 👈 super obvious hover size */
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-    z-index: 10;
-    position: relative;
-    border-radius: 12px;
-}
-
-
-
+        
 
     </style>
 </head>
@@ -101,7 +112,6 @@
         <strong>Returned To Sender</strong>
     </p>
 
-    <!-- Frosted Glass Card -->
     <div class="glass-card">
         <div class="table-responsive">
             <table id="exceptionTable" class="table table-hover table-sm">
@@ -116,7 +126,39 @@
     </div>
 </div>
 
-<!-- JS -->
+<!-- VIEW MODAL -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-3">
+      <h5 class="modal-title">Record Details</h5>
+      <div id="viewContent" class="mt-2"></div>
+      <button class="btn btn-secondary mt-3" data-bs-dismiss="modal">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content p-3">
+
+      <h5 class="modal-title">Edit Record</h5>
+
+      <!-- SCROLLABLE AREA -->
+      <div class="modal-body">
+        <form id="editForm" class="mt-2"></form>
+      </div>
+
+      <!-- FOOTER BUTTONS (ALWAYS VISIBLE) -->
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -124,60 +166,129 @@
 
 <script>
 
-    // Read the correct stored table data
-    let auditData = JSON.parse(localStorage.getItem("auditDataStore")) || [];
+let auditData = JSON.parse(localStorage.getItem("auditDataStore")) || [];
+let currentEditRow = null;
 
-    $(document).ready(function () {
+// ONLY THESE CAN BE EDITED
+const editableFields = [
+    "NAME",
+    "ADDRESS 1",
+    "ADDRESS 2",
+    "ADDRESS 3",
+    "ADDRESS 4",
+    "MOBILE NO."
+];
 
-        const headRow = document.getElementById("headRow");
-        const bodyRows = document.getElementById("bodyRows");
+$(document).ready(function () {
 
-        if (auditData.length === 0) {
-            headRow.innerHTML =
-                "<th>No data found — upload Excel in Dashboard first</th>";
-            return;
-        }
+    const headRow = document.getElementById("headRow");
+    const bodyRows = document.getElementById("bodyRows");
 
-        // Auto-detect the Status column
-        const statusColumn = Object.keys(auditData[0]).find(k =>
-            k.toLowerCase().includes("status")
-        );
+    if (auditData.length === 0) {
+        headRow.innerHTML = "<th>No data found — upload Excel in Dashboard first</th>";
+        return;
+    }
 
-        // Filter status = Returned To Sender
-        const filtered = auditData.filter(row =>
-            row[statusColumn] &&
-            String(row[statusColumn]).trim().toLowerCase() === "returned to sender"
-        );
+    const statusColumn = Object.keys(auditData[0]).find(k =>
+        k.toLowerCase().includes("status")
+    );
 
-        headRow.innerHTML = "";
-        bodyRows.innerHTML = "";
+    const filtered = auditData.filter(row =>
+        row[statusColumn] &&
+        String(row[statusColumn]).trim().toLowerCase() === "returned to sender"
+    );
 
-        if (filtered.length === 0) {
-            headRow.innerHTML = "<th>No Returned To Sender records found</th>";
-        } else {
-            // Header
-            Object.keys(filtered[0]).forEach(key => {
-                headRow.innerHTML += `<th>${key}</th>`;
-            });
+    headRow.innerHTML = "";
+    bodyRows.innerHTML = "";
 
-            // Body rows
-            filtered.forEach(row => {
-                let rowHTML = "<tr>";
-                Object.values(row).forEach(v => {
-                    rowHTML += `<td>${v}</td>`;
-                });
-                rowHTML += "</tr>";
-                bodyRows.innerHTML += rowHTML;
-            });
-        }
-
-        // Datatable activation
-        $('#exceptionTable').DataTable({
-            pageLength: 10,
-            ordering: true,
-            searching: true
+    if (filtered.length === 0) {
+        headRow.innerHTML = "<th>No Returned To Sender records found</th>";
+    } else {
+        Object.keys(filtered[0]).forEach(key => {
+            headRow.innerHTML += `<th>${key}</th>`;
         });
+
+        headRow.innerHTML += `<th>Actions</th>`;
+
+        filtered.forEach((row, index) => {
+            let rowHTML = "<tr>";
+
+            Object.entries(row).forEach(([key, value]) => {
+                if (key.toLowerCase().includes("status")) {
+                    rowHTML += `<td><span class='status-badge'>${value}</span></td>`;
+                } else {
+                    rowHTML += `<td>${value}</td>`;
+                }
+            });
+
+            rowHTML += `
+                <td>
+                    <button class="action-btn view-btn" onclick="viewRow(${index})">👁 View</button>
+                    <button class="action-btn edit-btn" onclick="editRow(${index})">✏️ Edit</button>
+                </td>
+            `;
+
+            rowHTML += "</tr>";
+            bodyRows.innerHTML += rowHTML;
+        });
+    }
+
+    $('#exceptionTable').DataTable({
+        pageLength: 10,
+        ordering: true,
+        searching: true
     });
+});
+
+/* VIEW */
+function viewRow(i) {
+    const row = auditData[i];
+    let html = "";
+
+    Object.keys(row).forEach(key => {
+        html += `<p><strong>${key}:</strong> ${row[key]}</p>`;
+    });
+
+    document.getElementById("viewContent").innerHTML = html;
+    new bootstrap.Modal(document.getElementById('viewModal')).show();
+}
+
+/* EDIT — ONLY NAME, ADDRESS, MOBILE NO CAN BE EDITED */
+function editRow(i) {
+    currentEditRow = i;
+    const row = auditData[i];
+    let html = "";
+
+    Object.keys(row).forEach(key => {
+        const value = row[key];
+        const editable = editableFields.includes(key.trim().toUpperCase());
+
+        html += `
+            <label class="mt-2"><strong>${key}</strong></label>
+            <input class="form-control" 
+                   value="${value}" 
+                   name="${key}"
+                   ${editable ? "" : "disabled"}>
+        `;
+    });
+
+    document.getElementById("editForm").innerHTML = html;
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+/* SAVE EDIT */
+function saveEdit() {
+    const inputs = document.querySelectorAll("#editForm input");
+
+    inputs.forEach(input => {
+        if (!input.disabled) {
+            auditData[currentEditRow][input.name] = input.value;
+        }
+    });
+
+    localStorage.setItem("auditDataStore", JSON.stringify(auditData));
+    location.reload();
+}
 
 </script>
 
