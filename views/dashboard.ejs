@@ -1,420 +1,574 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Audit Dashboard</title>
 
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+    <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
+        /* GLOBAL UI ------------------------------------------------------ */
         body {
-            background-color: #f4f6f8;
-            font-size: 0.9rem;
+            background: #f6f7f9;
+            font-family: "Inter", sans-serif;
+            font-size: 0.92rem;
+            color: #333;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
-        .dashboard-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-            margin-bottom: 25px;
-        }
-
-        table.dataTable thead th {
-            background-color: #343a40;
-            color: #fff;
-        }
-
-        #dropZone {
-            border: 2px dashed #6c757d;
-            border-radius: 10px;
-            padding: 25px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        #dropZone.dragover { background: #e9ecef; }
-
-        /* Summary Cards */
-        .summary-card {
-            border-left-width: 6px;
-            border-radius: 10px;
-            padding: 18px;
-            background: #fff;
-        }
-        .summary-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #6c757d;
-        }
-        .summary-value {
-            font-size: 1.6rem;
+        h2,
+        h5,
+        h6 {
             font-weight: 700;
         }
 
-        .border-delivered { border-left-color: #17a2b8; }
-        .border-returned  { border-left-color: #dc3545; }
-        .border-progress  { border-left-color: #ffc107; }
+        /* TOP NAV -------------------------------------------------------- */
+        .topbar {
+            background: #ffffff;
+            padding: 14px 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            transition: background 0.25s ease;
+        }
 
-        /* Count labels under charts */
+        .topbar-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        /* SUMMARY CARDS -------------------------------------------------- */
+        .summary-card {
+            border-radius: 14px;
+            padding: 22px;
+            color: #fff;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.10);
+            transition: 0.2s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .summary-icon {
+            font-size: 2rem;
+            opacity: 0.85;
+            margin-bottom: 6px;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-top: 5px;
+        }
+
+        .summary-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            opacity: 0.9;
+            text-transform: uppercase;
+        }
+
+        .bg-delivered {
+            background: #36c8a0;
+        }
+
+        .bg-returned {
+            background: #e04f5f;
+        }
+
+        .bg-progress {
+            background: #f4b400;
+        }
+
+        /* CARDS ----------------------------------------------------------- */
+        .card {
+            border: none;
+            border-radius: 16px;
+            padding: 20px;
+            background: #ffffff;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
+            margin-bottom: 20px;
+            transition: background 0.25s ease;
+        }
+
+        /* Upload Box ------------------------------------------------------ */
+        #dropZone {
+            border: 2px dashed #9aa8b8;
+            border-radius: 12px;
+            padding: 35px;
+            background: #f8fafc;
+            transition: 0.25s ease;
+            cursor: pointer;
+        }
+
+        #dropZone:hover {
+            background: #eaf1fb;
+            border-color: #4c8bf5;
+        }
+
+        #dropZone.dragover {
+            background: #e0ebff;
+            border-color: #1a73e8;
+        }
+
+        /* Data Table ------------------------------------------------------ */
+        table.dataTable thead th {
+            background: #212b36;
+            color: #fff;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        table.dataTable tbody tr:hover {
+            background-color: #f1f7ff !important;
+        }
+
+        /* Pie Chart Size -------------------------------------------------- */
+        #statusPieChart {
+            max-width: 135px !important;
+            max-height: 135px !important;
+            margin: 0 auto;
+        }
+
+        /* Chart Labels --------------------------------------------------- */
         .chart-count-label {
             text-align: center;
-            margin-top: 10px;
             font-weight: 600;
+            margin-top: 10px;
             color: #444;
         }
 
-        /* Smaller Pie Chart */
-        #statusPieChart {
-            max-width: 140px !important;
-            max-height: 140px !important;
-            margin: 0 auto;
+        /* Modal ---------------------------------------------------------- */
+        .modal-content {
+            border-radius: 16px;
+            padding: 5px;
+            background: #ffffff;
+            transition: background 0.25s ease;
+        }
+
+        /* DARK MODE ------------------------------------------------------ */
+        body.dark {
+            background: #1c1f24 !important;
+            color: #e3e3e3 !important;
+        }
+
+        body.dark .topbar {
+            background: #2a2f35 !important;
+            box-shadow: none !important;
+        }
+
+        body.dark .card {
+            background: #2a2f35 !important;
+            color: #fff;
+        }
+
+        body.dark .summary-card {
+            opacity: 0.95;
+        }
+
+        body.dark table.dataTable thead th {
+            background: #3a3f45 !important;
+        }
+
+        body.dark table.dataTable tbody tr:hover {
+            background: #333a45 !important;
+        }
+
+        body.dark #dropZone {
+            background: #2f343a;
+            border-color: #555;
+        }
+
+        body.dark .modal-content {
+            background: #2d3238;
+            color: #fff;
+        }
+
+        body.dark .chart-count-label {
+            color: #ccc !important;
+        }
+
+        body.dark .btn-outline-secondary {
+            color: #fff;
+            border-color: #888;
         }
     </style>
 </head>
 
 <body>
 
-<%- include('partial/navbar') %>
-<%- include('partial/sidebar') %>
+    <!-- NAVBAR -->
+    <div class="topbar">
+        <div class="topbar-title">Audit Trail Dashboard</div>
 
-<div class="container mt-4">
+        <div>
+            <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="fa-solid fa-file-arrow-up me-1"></i> Upload Excel
+            </button>
 
-    <div class="dashboard-header">
-        <h2>Audit Trail Dashboard</h2>
-        <p class="text-muted">Upload Excel files to generate a combined dataset with analytics</p>
+            <button class="btn btn-danger me-2"
+                onclick="localStorage.removeItem('auditDataStore'); location.reload();">
+                <i class="fa-solid fa-trash-can me-1"></i> Clear Data
+            </button>
 
-        <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
-            Upload Excel File(s)
-        </button>
-
-        <button class="btn btn-danger mt-2" onclick="localStorage.removeItem('auditDataStore'); location.reload();">
-            Clear Saved Data
-        </button>
-
-        <!-- TOTAL RECORDS -->
-        <div class="mt-3">
-            <h5><strong>Total Records: <span id="totalRecordsHeader">0</span></strong></h5>
+            <!-- DARK MODE TOGGLE -->
+            <button id="themeToggle" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-moon"></i>
+            </button>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="row mb-4" id="summaryCards">
-        <div class="col-md-4 mb-3">
-            <div class="summary-card border-delivered">
-                <div class="summary-title">Delivered</div>
-                <div class="summary-value" id="sumDelivered">0</div>
+    <div class="container mt-4">
+
+        <p class="text-muted mb-2">Upload Excel files to generate analytics</p>
+
+        <h5 class="mb-4"><strong>Total Records: <span id="totalRecordsHeader">0</span></strong></h5>
+
+        <!-- SUMMARY CARDS -->
+        <div class="row mb-4">
+
+            <div class="col-md-4 mb-3">
+                <div class="summary-card bg-delivered">
+                    <div class="summary-icon"><i class="fa-solid fa-check-circle"></i></div>
+                    <div class="summary-title">Delivered</div>
+                    <div class="summary-value" id="sumDelivered">0</div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="summary-card bg-returned">
+                    <div class="summary-icon"><i class="fa-solid fa-rotate-left"></i></div>
+                    <div class="summary-title">Returned to Sender</div>
+                    <div class="summary-value" id="sumReturned">0</div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="summary-card bg-progress">
+                    <div class="summary-icon"><i class="fa-solid fa-spinner"></i></div>
+                    <div class="summary-title">In Progress</div>
+                    <div class="summary-value" id="sumProgress">0</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BAR CHART -->
+        <div class="card">
+            <h6>Status Overview (Bar Chart)</h6>
+            <canvas id="statusBarChart" height="120"></canvas>
+            <div class="chart-count-label" id="barChartTotals"></div>
+        </div>
+
+        <!-- PIE CHART -->
+        <div class="card text-center">
+            <h6>Status Distribution (Pie Chart)</h6>
+            <canvas id="statusPieChart"></canvas>
+            <div class="chart-count-label" id="pieChartTotals"></div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="card p-3">
+            <div class="table-responsive">
+                <table id="auditTable" class="table table-sm table-bordered table-hover">
+                    <thead>
+                        <tr id="tableHeadRow">
+                            <th class="text-muted">Upload an Excel file to view data</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="summary-card border-returned">
-                <div class="summary-title">Returned to Sender</div>
-                <div class="summary-value" id="sumReturned">0</div>
+
+    </div>
+
+    <!-- UPLOAD MODAL -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Excel File(s)</h5>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="text-center mb-2">
+                        <small class="text-muted">Drag & drop or click to browse</small>
+                    </div>
+
+                    <div class="text-center" id="dropZone">
+                        <h6>📥 Drag & Drop Excel File Here</h6>
+                        <p class="text-muted">or click to browse</p>
+                        <small class="text-muted">Supported: .xlsx, .xls</small>
+                        <input type="file" id="excelInput" accept=".xlsx,.xls" hidden>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
+                </div>
+
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="summary-card border-progress">
-                <div class="summary-title">In Progress</div>
-                <div class="summary-value" id="sumProgress">0</div>
-            </div>
-        </div>
     </div>
 
-    <!-- Bar Chart -->
-    <div class="card p-3 mb-3">
-        <h6 class="mb-2">Status Overview (Bar Chart)</h6>
-        <canvas id="statusBarChart" height="120"></canvas>
-        <div class="chart-count-label" id="barChartTotals"></div>
-    </div>
+    <!-- JS LIBRARIES -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-    <!-- Pie Chart -->
-    <div class="card p-3 mb-3">
-        <h6 class="mb-3">Status Distribution (Pie Chart)</h6>
-        <canvas id="statusPieChart" width="140" height="140"></canvas>
-        <div class="chart-count-label" id="pieChartTotals"></div>
-    </div>
+    <!-- MAIN JS LOGIC -->
+    <script>
+        let auditData = <%- JSON.stringify(data || []) %>;
+        let barChart = null;
+        let pieChart = null;
 
-    <!-- Data Table -->
-    <div class="card p-2">
-        <div class="table-responsive">
-            <table id="auditTable" class="table table-sm table-bordered table-hover">
-                <thead>
-                    <tr id="tableHeadRow">
-                        <th class="text-muted">Upload an Excel file to view data</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-    </div>
+        $(document).ready(function () {
+            setupDragAndDrop();
 
-</div>
+            const saved = loadFromLocalStorage();
+            if (saved && saved.length > 0) {
+                auditData = saved;
+            }
 
-
-<!-- Upload Modal -->
-<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-
-      <div class="modal-header">
-        <h5 class="modal-title">Upload Excel File(s)</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-        <div class="text-center mb-2">
-            <small class="text-muted">Drag & drop or click to browse</small>
-        </div>
-
-        <div class="text-center" id="dropZone">
-            <h6 class="mb-1">📥 Drag & Drop Excel File Here</h6>
-            <p class="text-muted">or click to browse</p>
-            <small class="text-muted">Supported: .xlsx, .xls</small>
-            <input type="file" id="excelInput" accept=".xlsx,.xls" hidden>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-
-<!-- Scripts -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
-<script>
-
-let auditData = <%- JSON.stringify(data || []) %>;
-let barChart = null;
-let pieChart = null;
-
-$(document).ready(function () {
-    setupDragAndDrop();
-
-    // Load saved data if available
-    const saved = loadFromLocalStorage();
-    if (saved && saved.length > 0) {
-        auditData = saved;
-    }
-
-    if (auditData.length > 0) {
-        loadDashboard(auditData, false);
-    } else {
-        initEmptyTable();
-    }
-});
-
-/* Drag & Drop */
-function setupDragAndDrop() {
-    const dropZone = document.getElementById("dropZone");
-    const excelInput = document.getElementById("excelInput");
-
-    dropZone.addEventListener("dragover", e => {
-        e.preventDefault();
-        dropZone.classList.add("dragover");
-    });
-
-    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-
-    dropZone.addEventListener("drop", e => {
-        e.preventDefault();
-        dropZone.classList.remove("dragover");
-        const file = e.dataTransfer.files[0];
-        if (file) readExcel(file);
-    });
-
-    dropZone.addEventListener("click", () => excelInput.click());
-    excelInput.addEventListener("change", e => {
-        if (e.target.files[0]) readExcel(e.target.files[0]);
-    });
-}
-
-/* Read Excel */
-function readExcel(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
-        loadDashboard(jsonData, true);
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-/* Main Dashboard Render */
-function loadDashboard(newData, append) {
-    auditData = append ? auditData.concat(newData) : newData;
-
-    renderTable(auditData);
-    renderCharts(auditData);
-    renderSummary(auditData);
-
-    // Update top total
-    document.getElementById("totalRecordsHeader").innerText = auditData.length;
-
-    saveToLocalStorage();
-}
-
-/* Summary Cards */
-function renderSummary(data) {
-    let delivered = 0, returned = 0, progress = 0;
-
-    const statusColumn = Object.keys(data[0]).find(k => k.toLowerCase().includes("status"));
-
-    data.forEach(row => {
-        const raw = String(row[statusColumn] || "").trim().toLowerCase();
-        if (raw === "delivered") delivered++;
-        if (raw === "returned to sender") returned++;
-        if (raw === "in progress") progress++;
-    });
-
-    document.getElementById("sumDelivered").textContent = delivered;
-    document.getElementById("sumReturned").textContent = returned;
-    document.getElementById("sumProgress").textContent = progress;
-}
-
-/* Render Table */
-function initEmptyTable() {
-    $('#auditTable').DataTable({ paging: true });
-}
-
-function renderTable(data) {
-    const theadRow = document.getElementById("tableHeadRow");
-    const tbody = document.getElementById("tableBody");
-
-    if ($.fn.DataTable.isDataTable('#auditTable')) {
-        $('#auditTable').DataTable().clear().destroy();
-    }
-
-    theadRow.innerHTML = "";
-    tbody.innerHTML = "";
-
-    if (!data.length) {
-        theadRow.innerHTML = `<th class="text-muted">No data available</th>`;
-        return;
-    }
-
-    const hiddenCols = ["No.", "ADDRESS 3", "ADDRESS 4", "PRODUCT"];
-    const rename = { "PRODUCT": "CARD TYPE" };
-
-    const keys = Object.keys(data[0]).filter(k => !hiddenCols.includes(k));
-
-    keys.forEach(k => {
-        const th = document.createElement("th");
-        th.textContent = rename[k] || k;
-        theadRow.appendChild(th);
-    });
-
-    data.forEach(row => {
-        const tr = document.createElement("tr");
-        keys.forEach(k => {
-            const td = document.createElement("td");
-            td.textContent = row[k] ?? "";
-            tr.appendChild(td);
+            if (auditData.length > 0) {
+                loadDashboard(auditData, false);
+            } else {
+                initEmptyTable();
+            }
         });
-        tbody.appendChild(tr);
-    });
 
-    $('#auditTable').DataTable({
-        pageLength: 10,
-        ordering: true
-    });
-}
+        /* DRAG + DROP --------------------------------------------------*/
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById("dropZone");
+            const excelInput = document.getElementById("excelInput");
 
-/* Charts */
-function renderCharts(data) {
-    if (barChart) barChart.destroy();
-    if (pieChart) pieChart.destroy();
+            dropZone.addEventListener("dragover", e => {
+                e.preventDefault();
+                dropZone.classList.add("dragover");
+            });
+            dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
 
-    const statusColumn = Object.keys(data[0]).find(k =>
-        k.toLowerCase().includes("status")
-    );
+            dropZone.addEventListener("drop", e => {
+                e.preventDefault();
+                dropZone.classList.remove("dragover");
+                const file = e.dataTransfer.files[0];
+                if (file) readExcel(file);
+            });
 
-    let delivered = 0, returned = 0, progress = 0;
-
-    data.forEach(row => {
-        const raw = String(row[statusColumn] || "").trim().toLowerCase();
-        if (raw === "delivered") delivered++;
-        if (raw === "returned to sender") returned++;
-        if (raw === "in progress") progress++;
-    });
-
-    const labels = ["Delivered", "Returned to Sender", "In Progress"];
-    const values = [delivered, returned, progress];
-
-    const bgColors = [
-        'rgba(23,162,184,0.7)',
-        'rgba(220,53,69,0.7)',
-        'rgba(255,193,7,0.7)'
-    ];
-
-    const borderColors = [
-        'rgba(23,162,184,1)',
-        'rgba(220,53,69,1)',
-        'rgba(255,193,7,1)'
-    ];
-
-    // Bar Chart
-    barChart = new Chart(document.getElementById("statusBarChart"), {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Count',
-                data: values,
-                backgroundColor: bgColors,
-                borderColor: borderColors,
-                borderWidth: 1
-            }]
+            dropZone.addEventListener("click", () => excelInput.click());
+            excelInput.addEventListener("change", e => {
+                if (e.target.files[0]) readExcel(e.target.files[0]);
+            });
         }
-    });
 
-    // Pie Chart (smaller)
-    pieChart = new Chart(document.getElementById("statusPieChart"), {
-        type: 'pie',
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                backgroundColor: bgColors
-            }]
+        /* READ EXCEL --------------------------------------------------*/
+        function readExcel(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet);
+                loadDashboard(jsonData, true);
+            };
+            reader.readAsArrayBuffer(file);
         }
-    });
 
-    // Labels under charts
-    document.getElementById("barChartTotals").innerText =
-        `Delivered: ${delivered} | Returned: ${returned} | In Progress: ${progress}`;
+        /* MAIN RENDER --------------------------------------------------*/
+        function loadDashboard(newData, append) {
+            auditData = append ? auditData.concat(newData) : newData;
 
-    document.getElementById("pieChartTotals").innerText =
-        `Delivered: ${delivered} | Returned: ${returned} | In Progress: ${progress}`;
-}
+            renderTable(auditData);
+            renderSummary(auditData);
+            renderCharts(auditData);
 
-/* Local Storage */
-function saveToLocalStorage() {
-    localStorage.setItem("auditDataStore", JSON.stringify(auditData));
-}
-function loadFromLocalStorage() {
-    try {
-        return JSON.parse(localStorage.getItem("auditDataStore"));
-    } catch {
-        return null;
-    }
-}
+            document.getElementById("totalRecordsHeader").innerText = auditData.length;
 
-</script>
+            saveToLocalStorage();
+        }
+
+        /* SUMMARY ------------------------------------------------------*/
+        function renderSummary(data) {
+            let delivered = 0, returned = 0, progress = 0;
+
+            const statusColumn = Object.keys(data[0]).find(k => k.toLowerCase().includes("status"));
+
+            data.forEach(row => {
+                const raw = String(row[statusColumn] || "").trim().toLowerCase();
+                if (raw === "delivered") delivered++;
+                if (raw === "returned to sender") returned++;
+                if (raw === "in progress") progress++;
+            });
+
+            document.getElementById("sumDelivered").textContent = delivered;
+            document.getElementById("sumReturned").textContent = returned;
+            document.getElementById("sumProgress").textContent = progress;
+        }
+
+        /* TABLE --------------------------------------------------------*/
+        function initEmptyTable() {
+            $('#auditTable').DataTable({ paging: true });
+        }
+
+        function renderTable(data) {
+            const theadRow = document.getElementById("tableHeadRow");
+            const tbody = document.getElementById("tableBody");
+
+            if ($.fn.DataTable.isDataTable('#auditTable')) {
+                $('#auditTable').DataTable().clear().destroy();
+            }
+
+            theadRow.innerHTML = "";
+            tbody.innerHTML = "";
+
+            if (!data.length) {
+                theadRow.innerHTML = `<th class="text-muted">No data available</th>`;
+                return;
+            }
+
+            const hiddenCols = ["No.", "ADDRESS 3", "ADDRESS 4", "PRODUCT"];
+            const rename = { "PRODUCT": "CARD TYPE" };
+
+            const keys = Object.keys(data[0]).filter(k => !hiddenCols.includes(k));
+
+            keys.forEach(k => {
+                const th = document.createElement("th");
+                th.textContent = rename[k] || k;
+                theadRow.appendChild(th);
+            });
+
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+                keys.forEach(k => {
+                    const td = document.createElement("td");
+                    td.textContent = row[k] ?? "";
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+
+            $('#auditTable').DataTable({
+                pageLength: 10,
+                ordering: true
+            });
+        }
+
+        /* CHARTS ------------------------------------------------------*/
+        function renderCharts(data) {
+            if (barChart) barChart.destroy();
+            if (pieChart) pieChart.destroy();
+
+            const statusCol = Object.keys(data[0]).find(k =>
+                k.toLowerCase().includes("status")
+            );
+
+            let delivered = 0, returned = 0, progress = 0;
+
+            data.forEach(row => {
+                const raw = String(row[statusCol] || "").trim().toLowerCase();
+                if (raw === "delivered") delivered++;
+                if (raw === "returned to sender") returned++;
+                if (raw === "in progress") progress++;
+            });
+
+            const labels = ["Delivered", "Returned to Sender", "In Progress"];
+            const values = [delivered, returned, progress];
+
+            const bgColors = [
+                'rgba(54, 200, 160, 0.8)',
+                'rgba(224, 79, 95, 0.8)',
+                'rgba(244, 180, 0, 0.8)'
+            ];
+
+            barChart = new Chart(document.getElementById("statusBarChart"), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Count',
+                        data: values,
+                        backgroundColor: bgColors,
+                        borderRadius: 10
+                    }]
+                }
+            });
+
+            pieChart = new Chart(document.getElementById("statusPieChart"), {
+                type: 'pie',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: bgColors
+                    }]
+                }
+            });
+
+            document.getElementById("barChartTotals").innerText =
+                `Delivered: ${delivered} | Returned: ${returned} | In Progress: ${progress}`;
+
+            document.getElementById("pieChartTotals").innerText =
+                `Delivered: ${delivered} | Returned: ${returned} | In Progress: ${progress}`;
+        }
+
+        /* LOCAL STORAGE ------------------------------------------------*/
+        function saveToLocalStorage() {
+            localStorage.setItem("auditDataStore", JSON.stringify(auditData));
+        }
+        function loadFromLocalStorage() {
+            try {
+                return JSON.parse(localStorage.getItem("auditDataStore"));
+            } catch {
+                return null;
+            }
+        }
+
+        /* DARK MODE ----------------------------------------------------*/
+        const themeToggle = document.getElementById("themeToggle");
+
+        if (localStorage.getItem("theme") === "dark") {
+            document.body.classList.add("dark");
+            themeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
+        }
+
+        themeToggle.addEventListener("click", () => {
+            document.body.classList.toggle("dark");
+
+            if (document.body.classList.contains("dark")) {
+                localStorage.setItem("theme", "dark");
+                themeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
+            } else {
+                localStorage.setItem("theme", "light");
+                themeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
+            }
+        });
+    </script>
 
 </body>
+
 </html>
