@@ -9,8 +9,6 @@ const fs = require('fs');
 
 const app = express();
 
-// ========== FILE UPLOAD (PROFILE PICTURE) SETUP ==========
-
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -155,7 +153,7 @@ app.post('/login', async (req, res) => {
       return res.render('login', { errors, messages });
     }
 
-    // ✅ SAVE USER IN SESSION SO requireLogin WORKS
+    // SAVE USER IN SESSION SO requireLogin WORKS
     req.session.user = {
       id: user.id,
       username: user.username,
@@ -166,7 +164,7 @@ app.post('/login', async (req, res) => {
 
     console.log("LOGIN SUCCESS — Redirecting user:", req.session.user);
 
-    // 🎉 SUCCESS — redirect to dashboard
+    // SUCCESS — redirect to dashboard
     return res.redirect('/dashboard');
 
   } catch (err) {
@@ -346,7 +344,7 @@ app.post('/profile', requireLogin, upload.single('profilePic'), async (req, res)
   let errors = [];
 
   try {
-    // 🛑 Validate fields
+    // Validate fields
     if (!userName || !userEmail) {
       errors.push("Username and Email cannot be empty.");
       return res.render("profile", {
