@@ -406,3 +406,47 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+// ===================== UPLOAD HISTORY PAGE =====================
+app.get('/files', requireLogin, async (req, res) => {
+  try {
+    const [files] = await db.query(`
+      SELECT 
+        uf.id,
+        uf.filename,
+        uf.row_count,
+        uf.uploaded_at,
+        u.username
+      FROM uploaded_files uf
+      JOIN users u ON uf.user_id = u.id
+      ORDER BY uf.uploaded_at DESC
+    `);
+
+    res.render('files', { files });
+
+  } catch (err) {
+    console.error("Upload history error:", err);
+    res.render('files', { files: [] });
+  }
+});
+
+// ===================== DASHBOARD FILE VIEW =====================
+// Optional: load dashboard data for a specific file if fileId is in query
+app.get('/dashboard', requireLogin, async (req, res) => {
+  const fileId = req.query.fileId;
+
+  if (fileId) {
+    try {
+      const [rows] = await db.query(
+        'SELECT * FROM audit_records WHERE file_id = ?',
+        [fileId]
+      );
+      return res.render('dashboard', { data: rows });
+    } catch (err) {
+      console.error("Error fetching file data for dashboard:", err);
+      return res.render('dashboard', { data: [] });
+    }
+  }
+
+  // Default dashboard (all records or empty)
+  res.render('dashboard', { data: [] });
+});

@@ -392,15 +392,50 @@
 
         /* READ EXCEL --------------------------------------------------*/
         function readExcel(file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(sheet);
-                loadDashboard(jsonData, true);
-            };
-            reader.readAsArrayBuffer(file);
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+        if (!jsonData.length) {
+            alert('Excel file is empty!');
+            return;
         }
+
+        // Send data to server API to save in DB
+        fetch('/api/upload-excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                filename: file.name,
+                rows: jsonData
+            })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                alert(`Uploaded ${resp.inserted} records successfully!`);
+
+                // Update dashboard UI
+                loadDashboard(jsonData, true);
+
+                // Optional: refresh Upload History table (if on same page or via AJAX)
+                // window.location.href = '/files'; // redirect to history
+            } else {
+                alert('Failed to save file: ' + (resp.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Upload failed. See console.');
+        });
+    };
+    reader.readAsArrayBuffer(file);
+}
+
 
         /* MAIN RENDER --------------------------------------------------*/
         function loadDashboard(newData, append) {
