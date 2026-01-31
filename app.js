@@ -404,7 +404,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-// ===================== UPLOAD HISTORY PAGE =====================
+// ===================== UPLOAD HISTORY PAGE (zane)=====================
 app.get('/files', requireLogin, async (req, res) => {
   try {
     const [files] = await db.query(`
@@ -447,4 +447,63 @@ app.get('/dashboard', requireLogin, async (req, res) => {
 
   // Default dashboard (all records or empty)
   res.render('dashboard', { data: [] });
+});
+// ===================== DELETE UPLOADED FILE (Zane)=====================
+// Deletes:
+// 1. All audit_records linked to the file
+// 2. The uploaded_files record itself
+app.delete('/api/files/:id', requireLogin, async (req, res) => {
+  const fileId = req.params.id;
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // Delete related audit records first
+    await conn.query(
+      'DELETE FROM audit_records WHERE file_id = ?',
+      [fileId]
+    );
+
+    // Delete the file record
+    await conn.query(
+      'DELETE FROM uploaded_files WHERE id = ?',
+      [fileId]
+    );
+
+    await conn.commit();
+    res.json({ success: true });
+
+  } catch (err) {
+    await conn.rollback();
+    console.error("Delete file error:", err);
+    res.status(500).json({ success: false });
+  } finally {
+    conn.release();
+  }
+});
+// ===================== EXCEL VIEW PAGE (zane)=====================
+// Shows ONE uploaded file in "excel-like" table format
+app.get('/files/view/:id', requireLogin, async (req, res) => {
+  const fileId = req.params.id;
+
+  try {
+    // Get file metadata (name, row_count, uploaded_at, etc.)
+    const [fileRows] = await db.query(
+      'SELECT * FROM uploaded_files WHERE id = ?',
+      [fileId]
+    );
+    const fileMeta = fileRows[0] || null;
+
+    // Get all audit records linked to that file
+    const [rows] = await db.query(
+      'SELECT * FROM audit_records WHERE file_id = ?',
+      [fileId]
+    );
+
+    return res.render('file_view', { rows, fileId, fileMeta });
+  } catch (err) {
+    console.error("Excel view error:", err);
+    return res.render('file_view', { rows: [], fileId, fileMeta: null });
+  }
 });
