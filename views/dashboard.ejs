@@ -167,53 +167,6 @@
             background: #ffffff;
             transition: background 0.25s ease;
         }
-
-        /* DARK MODE ------------------------------------------------------ */
-        body.dark {
-            background: #1c1f24 !important;
-            color: #e3e3e3 !important;
-        }
-
-        body.dark .topbar {
-            background: #2a2f35 !important;
-            box-shadow: none !important;
-        }
-
-        body.dark .card {
-            background: #2a2f35 !important;
-            color: #fff;
-        }
-
-        body.dark .summary-card {
-            opacity: 0.95;
-        }
-
-        body.dark table.dataTable thead th {
-            background: #3a3f45 !important;
-        }
-
-        body.dark table.dataTable tbody tr:hover {
-            background: #333a45 !important;
-        }
-
-        body.dark #dropZone {
-            background: #2f343a;
-            border-color: #555;
-        }
-
-        body.dark .modal-content {
-            background: #2d3238;
-            color: #fff;
-        }
-
-        body.dark .chart-count-label {
-            color: #ccc !important;
-        }
-
-        body.dark .btn-outline-secondary {
-            color: #fff;
-            border-color: #888;
-        }
     </style>
 </head>
 
@@ -222,6 +175,8 @@
     <!-- NAVBAR -->
     <%- include('partial/navbar') %>
     <%- include('partial/sidebar') %>
+    <%- include('partial/darkmode') %>
+    <%- include('partial/darkmode-css') %>
 
     <div class="topbar">
         <div class="topbar-title">Audit Trail Dashboard</div>
@@ -234,11 +189,6 @@
             <button class="btn btn-danger me-2"
                 onclick="localStorage.removeItem('auditDataStore'); location.reload();">
                 <i class="fa-solid fa-trash-can me-1"></i> Clear Data
-            </button>
-
-            <!-- DARK MODE TOGGLE -->
-            <button id="themeToggle" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-moon"></i>
             </button>
         </div>
     </div>
@@ -550,28 +500,7 @@
                 return null;
             }
         }
-
-        /* DARK MODE ----------------------------------------------------*/
-        const themeToggle = document.getElementById("themeToggle");
-
-        if (localStorage.getItem("theme") === "dark") {
-            document.body.classList.add("dark");
-            themeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
-        }
-
-        themeToggle.addEventListener("click", () => {
-            document.body.classList.toggle("dark");
-
-            if (document.body.classList.contains("dark")) {
-                localStorage.setItem("theme", "dark");
-                themeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
-            } else {
-                localStorage.setItem("theme", "light");
-                themeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
-            }
-        });
     </script>
 
 </body>
-
 </html>
