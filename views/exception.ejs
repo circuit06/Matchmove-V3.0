@@ -11,9 +11,41 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
     <style>
+
+        .table-responsive {
+        overflow-x: auto;
+        }
+
+        html, body {
+            max-width: 100vw;
+            overflow-x: hidden;
+            height: 100%;
+            background: #eef1f5;
+        }
+
+        .dataTables_wrapper,
+        .dataTables_scroll,
+        .dataTables_scrollBody {
+        max-width: 100%;
+        overflow-x: auto;
+        }
+
+        .status-badge,
+        .action-btn {
+            white-space: nowrap;
+        }
+
+        .modal {
+        overflow-y: auto;
+        }
+
+        /* Lock page scrolling when modal is open */
+        body.modal-open {
+        overflow: hidden;
+        }
+
         body {
             background: #eef1f5;
-            backdrop-filter: blur(5px);
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
@@ -43,6 +75,11 @@
             box-shadow: 0 3px 10px rgba(255, 0, 0, 0.15);
             transform: scale(1.01);
             border-radius: 12px;
+        }
+
+        .exception-table-wrapper {
+            overflow-x: auto;
+            width: 100%;
         }
 
         .action-btn {
@@ -93,8 +130,17 @@
         #editModal .modal-body {
             overflow-y: auto;
             padding-right: 10px;
+            flex: 1;
         }
-        
+
+        /* FORCE modal above everything */
+        .modal {
+        z-index: 9999;
+        }
+
+        .modal-backdrop {
+        z-index: 9998;
+        }
 
     </style>
 </head>
@@ -113,7 +159,7 @@
     </p>
 
     <div class="glass-card">
-        <div class="table-responsive">
+        <div class="table-responsive exception-table-wrapper">
             <table id="exceptionTable" class="table table-hover table-sm">
                 <thead>
                     <tr id="headRow">
@@ -128,28 +174,36 @@
 
 <!-- VIEW MODAL -->
 <div class="modal fade" id="viewModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content p-3">
-      <h5 class="modal-title">Record Details</h5>
-      <div id="viewContent" class="mt-2"></div>
-      <button class="btn btn-secondary mt-3" data-bs-dismiss="modal">Close</button>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Record Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div id="viewContent" class="mt-2"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- EDIT MODAL -->
-<div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content p-3">
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
 
-      <h5 class="modal-title">Edit Record</h5>
-
-      <!-- SCROLLABLE AREA -->
-      <div class="modal-body">
-        <form id="editForm" class="mt-2"></form>
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Record</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
-      <!-- FOOTER BUTTONS (ALWAYS VISIBLE) -->
+      <div class="modal-body">
+        <form id="editForm"></form>
+      </div>
+
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="saveEdit()">Save</button>
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -159,17 +213,17 @@
   </div>
 </div>
 
+
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-
 let auditData = JSON.parse(localStorage.getItem("auditDataStore")) || [];
 let currentEditRow = null;
 
-// ONLY THESE CAN BE EDITED
+// ONLY THESE FIELDS CAN BE EDITED
 const editableFields = [
     "NAME",
     "ADDRESS 1",
@@ -201,44 +255,42 @@ $(document).ready(function () {
     headRow.innerHTML = "";
     bodyRows.innerHTML = "";
 
-    if (filtered.length === 0) {
-        headRow.innerHTML = "<th>No Returned To Sender records found</th>";
-    } else {
-        Object.keys(filtered[0]).forEach(key => {
-            headRow.innerHTML += `<th>${key}</th>`;
+    Object.keys(filtered[0]).forEach(key => {
+        headRow.innerHTML += `<th>${key}</th>`;
+    });
+    headRow.innerHTML += `<th>Actions</th>`;
+
+    filtered.forEach(row => {
+        const realIndex = auditData.indexOf(row);
+        let rowHTML = "<tr>";
+
+        Object.entries(row).forEach(([key, value]) => {
+            if (key.toLowerCase().includes("status")) {
+                rowHTML += `<td><span class="status-badge">${value}</span></td>`;
+            } else {
+                rowHTML += `<td>${value ?? ""}</td>`;
+            }
         });
 
-        headRow.innerHTML += `<th>Actions</th>`;
+        rowHTML += `
+          <td>
+            <button class="action-btn view-btn" onclick="viewRow(${realIndex})">👁 View</button>
+            <button class="action-btn edit-btn" onclick='editRow(${JSON.stringify(row)})'>✏️ Edit </button>
+          </td>
+        </tr>
+        `;
 
-        filtered.forEach((row, index) => {
-            let rowHTML = "<tr>";
-
-            Object.entries(row).forEach(([key, value]) => {
-                if (key.toLowerCase().includes("status")) {
-                    rowHTML += `<td><span class='status-badge'>${value}</span></td>`;
-                } else {
-                    rowHTML += `<td>${value}</td>`;
-                }
-            });
-
-            rowHTML += `
-                <td>
-                    <button class="action-btn view-btn" onclick="viewRow(${index})">👁 View</button>
-                    <button class="action-btn edit-btn" onclick="editRow(${index})">✏️ Edit</button>
-                </td>
-            `;
-
-            rowHTML += "</tr>";
-            bodyRows.innerHTML += rowHTML;
-        });
-    }
+        bodyRows.innerHTML += rowHTML;
+    });
 
     $('#exceptionTable').DataTable({
         pageLength: 10,
         ordering: true,
-        searching: true
+        searching: true,
+        scrollX: true
     });
 });
+
 
 /* VIEW */
 function viewRow(i) {
@@ -250,45 +302,92 @@ function viewRow(i) {
     });
 
     document.getElementById("viewContent").innerHTML = html;
-    new bootstrap.Modal(document.getElementById('viewModal')).show();
+    bootstrap.Modal.getOrCreateInstance(
+        document.getElementById("viewModal")
+    ).show();
 }
 
-/* EDIT — ONLY NAME, ADDRESS, MOBILE NO CAN BE EDITED */
-function editRow(i) {
-    currentEditRow = i;
-    const row = auditData[i];
+/* ✅ FINAL EDIT FORM — GUARANTEED */
+function editRow(row) {
+    console.log("🔍 editRow called with:", row);
+
+    if (!row) {
+        console.error("❌ Row is null/undefined!");
+        return;
+    }
+
+    currentEditRow = row;
+    
     let html = "";
 
     Object.keys(row).forEach(key => {
-        const value = row[key];
+        const value = row[key] ?? "";
         const editable = editableFields.includes(key.trim().toUpperCase());
 
-        html += `
-            <label class="mt-2"><strong>${key}</strong></label>
-            <input class="form-control" 
-                   value="${value}" 
-                   name="${key}"
-                   ${editable ? "" : "disabled"}>
-        `;
+        if (editable) {
+            html += `
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">${key}</label>
+                    <input class="form-control" name="${key}" value="${value}">
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">${key}</label>
+                    <div class="form-control bg-light">${value}</div>
+                </div>
+            `;
+        }
     });
 
+    console.log("📝 Form HTML generated");
     document.getElementById("editForm").innerHTML = html;
-    new bootstrap.Modal(document.getElementById('editModal')).show();
+    console.log("✅ Form HTML injected");
+
+    const modalEl = document.getElementById("editModal");
+    console.log("🎯 Modal element found:", modalEl);
+    
+    if (!modalEl) {
+        console.error("❌ editModal element not found!");
+        return;
+    }
+
+    try {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        console.log("🎭 Bootstrap Modal instance created");
+        modal.show();
+        console.log("✅ Modal shown!");
+    } catch (e) {
+        console.error("❌ Error showing modal:", e);
+    }
 }
 
-/* SAVE EDIT */
+
+
+/* SAVE */
 function saveEdit() {
     const inputs = document.querySelectorAll("#editForm input");
 
     inputs.forEach(input => {
-        if (!input.disabled) {
-            auditData[currentEditRow][input.name] = input.value;
-        }
+        currentEditRow[input.name] = input.value;
     });
 
+    // Update the matching object in auditData
+    const index = auditData.findIndex(r => r === currentEditRow);
+    if (index !== -1) {
+        auditData[index] = currentEditRow;
+    }
+
     localStorage.setItem("auditDataStore", JSON.stringify(auditData));
+
+    bootstrap.Modal.getInstance(
+        document.getElementById("editModal")
+    ).hide();
+
     location.reload();
 }
+
 
 </script>
 
