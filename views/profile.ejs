@@ -14,66 +14,60 @@
         }
 
         .page-wrapper {
-            margin-top: 40px;
+            margin-top: 30px;
+            padding-bottom: 40px;
             display: flex;
             justify-content: center;
             width: 100%;
+            min-height: calc(100vh - 120px);
         }
 
         .profile-container {
             width: 100%;
-            max-width: 1100px;
+            max-width: 1000px;
         }
 
         .profile-title {
             text-align: center;
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
-            color: #000;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .profile-layout {
             display: flex;
-            gap: 50px;
-            width: 100%;
+            gap: 40px;
         }
 
         .profile-avatar {
-            width: 280px;
-            height: 280px;
+            width: 240px;
+            height: 240px;
             object-fit: cover;
             border-radius: 10px;
         }
 
         .profile-field {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .profile-field label {
             font-weight: 600;
-            font-size: 18px;
-            margin-bottom: 6px;
-        }
-
-        .profile-field input {
-            padding: 14px;
-            font-size: 20px;
+            margin-bottom: 4px;
         }
 
         .edit-btn-wrapper {
-            margin-top: 40px;
+            margin-top: 30px;
             text-align: center;
         }
 
         .btn-edit {
             background: #d21404;
             color: white;
-            padding: 12px 40px;
-            border: none;
-            font-size: 20px;
+            padding: 10px 32px;
+            font-size: 18px;
             font-weight: 600;
             border-radius: 6px;
+            border: none;
         }
 
         .btn-edit:hover {
@@ -88,8 +82,8 @@
             }
 
             .profile-avatar {
-                width: 220px;
-                height: 220px;
+                width: 200px;
+                height: 200px;
             }
         }
     </style>
@@ -121,70 +115,80 @@
 
             <div class="profile-title">My Profile</div>
 
+            <% const hasCustomPic = user.profile_picture && user.profile_picture !== 'default.png'; %>
+
             <div class="profile-layout">
 
-                <% if (user.profile_picture && user.profile_picture !== 'default.png') { %>
-
+                <% if (hasCustomPic) { %>
                     <img src="/uploads/<%= user.profile_picture %>" class="profile-avatar">
-
-                    <div style="flex: 1;">
-
+                    <div style="flex:1;">
                 <% } else { %>
-
-                    <div style="flex: 1; max-width: 650px; margin: 0 auto;">
-
+                    <div style="flex:1; max-width:650px; margin:0 auto;">
                 <% } %>
 
-                        <div id="viewMode">
+                    <!-- VIEW MODE -->
+                    <div id="viewMode">
+                        <div class="profile-field">
+                            <label>Username</label>
+                            <input class="form-control" value="<%= user.username %>" disabled>
+                        </div>
+
+                        <div class="profile-field">
+                            <label>Email</label>
+                            <input class="form-control" value="<%= user.email %>" disabled>
+                        </div>
+
+                        <div class="profile-field">
+                            <label>Password</label>
+                            <input class="form-control" value="******" disabled>
+                        </div>
+                    </div>
+
+                    <!-- EDIT MODE -->
+                    <div id="editMode" style="display:none;">
+                        <form action="/profile" method="POST" enctype="multipart/form-data">
+
                             <div class="profile-field">
                                 <label>Username</label>
-                                <input class="form-control" value="<%= user.username %>" disabled>
+                                <input type="text" class="form-control" name="userName" value="<%= user.username %>">
                             </div>
 
                             <div class="profile-field">
                                 <label>Email</label>
-                                <input class="form-control" value="<%= user.email %>" disabled>
+                                <input type="email" class="form-control" name="userEmail" value="<%= user.email %>">
                             </div>
 
                             <div class="profile-field">
-                                <label>Password</label>
-                                <input class="form-control" value="******" disabled>
+                                <label>New Password</label>
+                                <input type="password" class="form-control" name="userPassword" placeholder="Leave blank to keep current password">
                             </div>
-                        </div>
 
-                        <div id="editMode" style="display:none;">
-                            <form action="/profile" method="POST" enctype="multipart/form-data">
+                            <div class="profile-field">
+                                <label>Profile Picture</label>
+                                <input type="file" class="form-control" name="profilePic" accept="image/*">
+                            </div>
 
-                                <div class="profile-field">
-                                    <label>Username</label>
-                                    <input type="text" class="form-control" name="userName" value="<%= user.username %>">
+                            <% if (hasCustomPic) { %>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           id="removeProfilePic"
+                                           name="removeProfilePic"
+                                           value="1">
+                                    <label class="form-check-label" for="removeProfilePic">
+                                        Remove current profile picture
+                                    </label>
                                 </div>
+                            <% } %>
 
-                                <div class="profile-field">
-                                    <label>Email</label>
-                                    <input type="email" class="form-control" name="userEmail" value="<%= user.email %>">
-                                </div>
-
-                                <div class="profile-field">
-                                    <label>New Password</label>
-                                    <input type="password" class="form-control" name="userPassword" placeholder="Leave blank to keep current password">
-                                </div>
-
-                                <div class="profile-field">
-                                    <label>Profile Picture</label>
-                                    <input type="file" class="form-control" name="profilePic" accept="image/*">
-                                </div>
-
-                                <div class="d-flex gap-3">
-                                    <button type="submit" class="btn btn-success w-50">Save</button>
-                                    <button type="button" class="btn btn-danger w-50" onclick="cancelEdit()">Cancel</button>
-                                </div>
-
-                            </form>
-                        </div>
-
+                            <div class="d-flex gap-3">
+                                <button type="submit" class="btn btn-success w-50">Save</button>
+                                <button type="button" class="btn btn-danger w-50" onclick="cancelEdit()">Cancel</button>
+                            </div>
+                        </form>
                     </div>
 
+                </div>
             </div>
 
             <div class="edit-btn-wrapper" id="editBtnArea">
@@ -199,6 +203,9 @@
             document.getElementById("viewMode").style.display = "none";
             document.getElementById("editMode").style.display = "block";
             document.getElementById("editBtnArea").style.display = "none";
+
+            const cb = document.getElementById("removeProfilePic");
+            if (cb) cb.checked = false;
         }
 
         function cancelEdit() {

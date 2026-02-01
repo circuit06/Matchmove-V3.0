@@ -9,8 +9,6 @@ const fs = require('fs');
 
 const app = express();
 
-// ========== FILE UPLOAD (PROFILE PICTURE) SETUP ==========
-
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -155,7 +153,7 @@ app.post('/login', async (req, res) => {
       return res.render('login', { errors, messages });
     }
 
-    // ✅ SAVE USER IN SESSION SO requireLogin WORKS
+    // SAVE USER IN SESSION SO requireLogin WORKS
     req.session.user = {
       id: user.id,
       username: user.username,
@@ -166,7 +164,7 @@ app.post('/login', async (req, res) => {
 
     console.log("LOGIN SUCCESS — Redirecting user:", req.session.user);
 
-    // 🎉 SUCCESS — redirect to dashboard
+    // SUCCESS — redirect to dashboard
     return res.redirect('/dashboard');
 
   } catch (err) {
@@ -346,7 +344,7 @@ app.post('/profile', requireLogin, upload.single('profilePic'), async (req, res)
   let errors = [];
 
   try {
-    // 🛑 Validate fields
+    // Validate fields
     if (!userName || !userEmail) {
       errors.push("Username and Email cannot be empty.");
       return res.render("profile", {
@@ -405,4 +403,107 @@ app.post('/profile', requireLogin, upload.single('profilePic'), async (req, res)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+});
+// ===================== UPLOAD HISTORY PAGE (zane)=====================
+app.get('/files', requireLogin, async (req, res) => {
+  try {
+    const [files] = await db.query(`
+      SELECT 
+        uf.id,
+        uf.filename,
+        uf.row_count,
+        uf.uploaded_at,
+        u.username
+      FROM uploaded_files uf
+      JOIN users u ON uf.user_id = u.id
+      ORDER BY uf.uploaded_at DESC
+    `);
+
+    res.render('files', { files });
+
+  } catch (err) {
+    console.error("Upload history error:", err);
+    res.render('files', { files: [] });
+  }
+});
+
+// ===================== DASHBOARD FILE VIEW =====================
+// Optional: load dashboard data for a specific file if fileId is in query
+app.get('/dashboard', requireLogin, async (req, res) => {
+  const fileId = req.query.fileId;
+
+  if (fileId) {
+    try {
+      const [rows] = await db.query(
+        'SELECT * FROM audit_records WHERE file_id = ?',
+        [fileId]
+      );
+      return res.render('dashboard', { data: rows });
+    } catch (err) {
+      console.error("Error fetching file data for dashboard:", err);
+      return res.render('dashboard', { data: [] });
+    }
+  }
+
+  // Default dashboard (all records or empty)
+  res.render('dashboard', { data: [] });
+});
+// ===================== DELETE UPLOADED FILE (Zane)=====================
+// Deletes:
+// 1. All audit_records linked to the file
+// 2. The uploaded_files record itself
+app.delete('/api/files/:id', requireLogin, async (req, res) => {
+  const fileId = req.params.id;
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // Delete related audit records first
+    await conn.query(
+      'DELETE FROM audit_records WHERE file_id = ?',
+      [fileId]
+    );
+
+    // Delete the file record
+    await conn.query(
+      'DELETE FROM uploaded_files WHERE id = ?',
+      [fileId]
+    );
+
+    await conn.commit();
+    res.json({ success: true });
+
+  } catch (err) {
+    await conn.rollback();
+    console.error("Delete file error:", err);
+    res.status(500).json({ success: false });
+  } finally {
+    conn.release();
+  }
+});
+// ===================== EXCEL VIEW PAGE (zane)=====================
+// Shows ONE uploaded file in "excel-like" table format
+app.get('/files/view/:id', requireLogin, async (req, res) => {
+  const fileId = req.params.id;
+
+  try {
+    // Get file metadata (name, row_count, uploaded_at, etc.)
+    const [fileRows] = await db.query(
+      'SELECT * FROM uploaded_files WHERE id = ?',
+      [fileId]
+    );
+    const fileMeta = fileRows[0] || null;
+
+    // Get all audit records linked to that file
+    const [rows] = await db.query(
+      'SELECT * FROM audit_records WHERE file_id = ?',
+      [fileId]
+    );
+
+    return res.render('file_view', { rows, fileId, fileMeta });
+  } catch (err) {
+    console.error("Excel view error:", err);
+    return res.render('file_view', { rows: [], fileId, fileMeta: null });
+  }
 });
